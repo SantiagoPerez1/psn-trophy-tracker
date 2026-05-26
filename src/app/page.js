@@ -251,7 +251,7 @@ export default function Home() {
       {/* Detalle del Juego Seleccionado (Trofeos Pendientes + Guía de YouTube) */}
       {!isLoadingGames && selectedGame && (
         <div className="animate-fade-in delay-3">
-          <h2 className="section-title">Trofeos Pendientes de "{selectedGame.titleName}"</h2>
+          <h2 className="section-title">Trofeos Pendientes de &quot;{selectedGame.titleName}&quot;</h2>
           
           {isLoadingTrophies ? (
             <div className="loader-wrapper">
@@ -314,7 +314,7 @@ export default function Home() {
                         Guía de YouTube
                       </div>
                       <h3 className="video-title-main">
-                        Tutorial para: "{selectedTrophy.trophyName}"
+                        Tutorial para: &quot;{selectedTrophy.trophyName}&quot;
                       </h3>
                       <p className="video-subtitle">Juego: {selectedGame.titleName}</p>
                     </div>

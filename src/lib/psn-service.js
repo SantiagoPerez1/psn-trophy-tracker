@@ -163,12 +163,15 @@ export async function getGamesForUser(psnId) {
     // Buscar al usuario para obtener su accountId
     const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
     
+    // Extraer resultados del primer dominio de búsqueda universal
+    const searchResults = searchResponse.domainResponses?.[0]?.results || [];
+    
     // Intentar buscar la coincidencia exacta de onlineId
-    const matchedUser = searchResponse.results?.find(
+    const matchedUser = searchResults.find(
       r => r.socialMetadata?.onlineId?.toLowerCase() === psnId.toLowerCase()
     );
     
-    const accountId = matchedUser?.socialMetadata?.accountId || searchResponse.results?.[0]?.socialMetadata?.accountId;
+    const accountId = matchedUser?.socialMetadata?.accountId || searchResults[0]?.socialMetadata?.accountId;
     
     if (!accountId) {
       throw new Error("USER_NOT_FOUND");
@@ -232,10 +235,13 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
     
     // Obtener accountId del usuario
     const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
-    const matchedUser = searchResponse.results?.find(
+    
+    const searchResults = searchResponse.domainResponses?.[0]?.results || [];
+    
+    const matchedUser = searchResults.find(
       r => r.socialMetadata?.onlineId?.toLowerCase() === psnId.toLowerCase()
     );
-    const accountId = matchedUser?.socialMetadata?.accountId || searchResponse.results?.[0]?.socialMetadata?.accountId;
+    const accountId = matchedUser?.socialMetadata?.accountId || searchResults[0]?.socialMetadata?.accountId;
     
     if (!accountId) {
       throw new Error("USER_NOT_FOUND");

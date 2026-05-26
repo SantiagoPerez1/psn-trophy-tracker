@@ -51,19 +51,28 @@ export default function Home() {
   };
 
   const handleSelectGame = async (game) => {
+    // Si hacemos clic en el juego ya seleccionado, lo colapsamos
+    if (selectedGame?.npCommunicationId === game.npCommunicationId) {
+      setSelectedGame(null);
+      setTrophies([]);
+      setSelectedTrophy(null);
+      setCurrentVideo(null);
+      return;
+    }
+
     setSelectedGame(game);
     setIsLoadingTrophies(true);
     setSelectedTrophy(null);
     setCurrentVideo(null);
     setError("");
 
-    // Auto-scroll suave a la sección de trofeos para una mejor experiencia de usuario (UX)
+    // Auto-scroll suave hacia la tarjeta de juego que se va a expandir
     setTimeout(() => {
-      const element = document.getElementById("trophies-section");
+      const element = document.getElementById(`game-card-${game.npCommunicationId}`);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-    }, 200);
+    }, 150);
 
     try {
       const res = await fetch(
@@ -131,7 +140,7 @@ export default function Home() {
     };
     
     return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 2C7.58 2 4 5.58 4 10C4 13.91 6.8 17.17 10.5 17.84V20.5H8.5C7.95 20.5 7.5 20.95 7.5 21.5C7.5 22.05 7.95 22.5 8.5 22.5H15.5C16.05 22.5 16.5 22.05 16.5 21.5C16.5 20.95 16.05 20.5 15.5 20.5H13.5V17.84C17.2 17.17 20 13.91 20 10C20 5.58 16.42 2 12 2ZM6 10C6 6.97 8.28 4.46 11.25 4.07V15.93C7.29 15.48 6 12.87 6 10ZM18 10C18 12.87 16.71 15.48 12.75 15.93V4.07C15.72 4.46 18 6.97 18 10Z" fill={colorMap[type] || "#ffffff"}/>
       </svg>
     );
@@ -177,7 +186,7 @@ export default function Home() {
             <input
               type="text"
               className="search-input"
-              placeholder="Ej. San16_uru"
+              placeholder="Ej. Kratos_PSN"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
               disabled={isLoadingGames}
@@ -227,185 +236,253 @@ export default function Home() {
           </div>
           
           <div className="games-grid">
-            {sortedGames.map((game) => (
-              <div
-                key={game.npCommunicationId}
-                className={`game-card ${selectedGame?.npCommunicationId === game.npCommunicationId ? "selected" : ""}`}
-                onClick={() => handleSelectGame(game)}
-              >
-                <div className="game-image-container">
-                  <img
-                    src={game.conceptIconUrl}
-                    alt={game.titleName}
-                    className="game-image"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80";
-                    }}
-                  />
-                </div>
-                <div className="game-info">
-                  <span className="game-platform">{game.platform}</span>
-                  <h3 className="game-title">{game.titleName}</h3>
-                  
-                  <div className="progress-section">
-                    <div className="progress-header">
-                      <span>Progreso Trofeos</span>
-                      <span className="progress-percentage">{game.progress}%</span>
+            {sortedGames.map((game) => {
+              const isSelected = selectedGame?.npCommunicationId === game.npCommunicationId;
+              
+              if (isSelected) {
+                // RENDER DE CARD EXPANDIDA (INLINE)
+                return (
+                  <div
+                    key={game.npCommunicationId}
+                    id={`game-card-${game.npCommunicationId}`}
+                    className="game-card expanded animate-fade-in"
+                  >
+                    {/* Botón de cerrar */}
+                    <button 
+                      className="close-expand-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedGame(null);
+                        setTrophies([]);
+                        setSelectedTrophy(null);
+                        setCurrentVideo(null);
+                      }}
+                    >
+                      ✕ Cerrar Detalles
+                    </button>
+
+                    <div className="expanded-header">
+                      <div className="expanded-cover-wrapper">
+                        <img
+                          src={game.conceptIconUrl}
+                          alt={game.titleName}
+                          className="expanded-game-image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80";
+                          }}
+                        />
+                      </div>
+                      <div className="expanded-game-info">
+                        <span className="game-platform">{game.platform}</span>
+                        <h3 className="expanded-game-title">{game.titleName}</h3>
+                        
+                        <div className="progress-section" style={{ maxWidth: "450px" }}>
+                          <div className="progress-header" style={{ marginBottom: "0.25rem" }}>
+                            <span>Progreso de Trofeos</span>
+                            <span className="progress-percentage">{game.progress}%</span>
+                          </div>
+                          <div className="progress-bar-bg" style={{ marginBottom: "0.5rem" }}>
+                            <div
+                              className="progress-bar-fill"
+                              style={{ width: `${game.progress}%` }}
+                            ></div>
+                          </div>
+                          <div className="trophies-summary" style={{ border: "none", paddingTop: "0", display: "flex", gap: "1rem", justifyContent: "flex-start" }}>
+                            <span className="trophy-mini-item platinum" style={{ gap: "4px" }}>
+                              🏆 {game.earnedTrophies.platinum}/{game.definedTrophies.platinum}
+                            </span>
+                            <span className="trophy-mini-item gold" style={{ gap: "4px" }}>
+                              🟡 {game.earnedTrophies.gold}/{game.definedTrophies.gold}
+                            </span>
+                            <span className="trophy-mini-item silver" style={{ gap: "4px" }}>
+                              ⚪ {game.earnedTrophies.silver}/{game.definedTrophies.silver}
+                            </span>
+                            <span className="trophy-mini-item bronze" style={{ gap: "4px" }}>
+                              🟤 {game.earnedTrophies.bronze}/{game.definedTrophies.bronze}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="progress-bar-bg">
-                      <div
-                        className="progress-bar-fill"
-                        style={{ width: `${game.progress}%` }}
-                      ></div>
-                    </div>
-                    
-                    <div className="trophies-summary">
-                      <span className="trophy-mini-item platinum">
-                        🏆 {game.earnedTrophies.platinum}/{game.definedTrophies.platinum}
-                      </span>
-                      <span className="trophy-mini-item gold">
-                        🟡 {game.earnedTrophies.gold}/{game.definedTrophies.gold}
-                      </span>
-                      <span className="trophy-mini-item silver">
-                        ⚪ {game.earnedTrophies.silver}/{game.definedTrophies.silver}
-                      </span>
-                      <span className="trophy-mini-item bronze">
-                        🟤 {game.earnedTrophies.bronze}/{game.definedTrophies.bronze}
-                      </span>
+
+                    {/* Cuerpo de la Tarjeta Expandida */}
+                    <div className="expanded-body">
+                      {/* Columna Izquierda: Trofeos Pendientes */}
+                      <div className="expanded-trophies-list">
+                        <h4 className="expanded-sub-title">
+                          <TrophyIcon type="platinum" /> Trofeos Pendientes ({trophies.length})
+                        </h4>
+                        
+                        {isLoadingTrophies ? (
+                          <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
+                            <div className="ps-spinner" style={{ width: "30px", height: "30px" }}></div>
+                            <p className="loader-text" style={{ fontSize: "0.85rem" }}>Obteniendo trofeos bloqueados...</p>
+                          </div>
+                        ) : trophies.length === 0 ? (
+                          <div className="empty-placeholder" style={{ padding: "2rem" }}>
+                            <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🎉</span>
+                            <p className="empty-text" style={{ fontSize: "1rem" }}>¡Juego Completado!</p>
+                            <p className="empty-subtext" style={{ fontSize: "0.8rem" }}>Has conseguido el 100% de los trofeos de este juego.</p>
+                          </div>
+                        ) : (
+                          <div className="trophies-scroll-container">
+                            {trophies.map((trophy) => (
+                              <div
+                                key={trophy.trophyId}
+                                className={`trophy-card ${selectedTrophy?.trophyId === trophy.trophyId ? "active" : ""}`}
+                                onClick={() => handleSelectTrophy(trophy, game)}
+                              >
+                                <div className="trophy-icon-wrapper">
+                                  <img
+                                    src={trophy.trophyIconUrl}
+                                    alt="Icon"
+                                    className="trophy-badge-icon"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
+                                    }}
+                                  />
+                                  <div className={`trophy-type-indicator ${trophy.trophyType}`}></div>
+                                </div>
+                                
+                                <div className="trophy-details">
+                                  <div className="trophy-name-row">
+                                    <span className="trophy-name">{trophy.trophyName}</span>
+                                    <span className={`trophy-tag ${trophy.trophyType}`}>
+                                      {trophy.trophyType}
+                                    </span>
+                                  </div>
+                                  <p className="trophy-desc">{trophy.trophyDetail}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Columna Derecha: Videotutorial */}
+                      <div className="expanded-video-panel">
+                        <h4 className="expanded-sub-title">📺 Guía de Videotutorial</h4>
+                        
+                        {selectedTrophy ? (
+                          <div className="video-card animate-fade-in" style={{ border: "none", background: "transparent", padding: 0, boxShadow: "none" }}>
+                            <div className="video-body" style={{ padding: 0 }}>
+                              {isLoadingVideo ? (
+                                <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
+                                  <div className="ps-spinner" style={{ width: "30px", height: "30px" }}></div>
+                                  <p className="loader-text" style={{ fontSize: "0.85rem" }}>Buscando tutorial en YouTube...</p>
+                                </div>
+                              ) : currentVideo ? (
+                                <>
+                                  {currentVideo.videoId ? (
+                                    <>
+                                      <div className="video-container" style={{ margin: "0 0 1rem 0" }}>
+                                        <iframe
+                                          src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
+                                          title={currentVideo.title}
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                        ></iframe>
+                                      </div>
+                                      <p className="video-desc" style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>
+                                        <strong>Video:</strong> {currentVideo.title}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <div className="empty-placeholder" style={{ padding: "2rem 1rem", marginBottom: "1rem", background: "rgba(255, 0, 0, 0.02)", border: "1px solid rgba(255, 0, 0, 0.05)" }}>
+                                      <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📺</span>
+                                      <p className="empty-text" style={{ fontSize: "0.9rem", fontWeight: "700" }}>Videoguía externa disponible</p>
+                                      <p className="empty-subtext" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                                        Por seguridad de YouTube, no se permite reproducir directamente aquí, pero puedes abrir el enlace de abajo.
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  <div className="video-button-row">
+                                    <a
+                                      href={currentVideo.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="video-btn-link"
+                                    >
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "4px" }}><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                      {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
+                                    </a>
+                                  </div>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="empty-placeholder" style={{ padding: "3rem 1.5rem" }}>
+                            <span style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>👉</span>
+                            <p className="empty-subtext" style={{ fontSize: "0.85rem" }}>
+                              Selecciona un trofeo de la lista de la izquierda para ver su videoguía correspondiente.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                );
+              }
 
-      {/* Detalle del Juego Seleccionado (Trofeos Pendientes + Guía de YouTube) */}
-      {!isLoadingGames && selectedGame && (
-        <div id="trophies-section" className="animate-fade-in delay-3" style={{ scrollMarginTop: "2rem", paddingTop: "1rem" }}>
-          <h2 className="section-title">Trofeos Pendientes de &quot;{selectedGame.titleName}&quot;</h2>
-          
-          {isLoadingTrophies ? (
-            <div className="loader-wrapper">
-              <div className="ps-spinner"></div>
-              <p className="loader-text">Obteniendo la lista de trofeos bloqueados...</p>
-            </div>
-          ) : trophies.length === 0 ? (
-            <div className="empty-placeholder">
-              <span className="empty-icon">🎉</span>
-              <p className="empty-text">¡Felicidades!</p>
-              <p className="empty-subtext">Has conseguido el 100% de los trofeos de este juego o no se encontraron trofeos pendientes.</p>
-            </div>
-          ) : (
-            <div className="detail-layout">
-              {/* Columna Izquierda: Lista de Trofeos */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {trophies.map((trophy) => (
-                  <div
-                    key={trophy.trophyId}
-                    className={`trophy-card ${selectedTrophy?.trophyId === trophy.trophyId ? "active" : ""}`}
-                    onClick={() => handleSelectTrophy(trophy)}
-                  >
-                    <div className="trophy-icon-wrapper">
-                      <img
-                        src={trophy.trophyIconUrl}
-                        alt="Trophy Icon"
-                        className="trophy-badge-icon"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
-                        }}
-                      />
-                      <div className={`trophy-type-indicator ${trophy.trophyType}`}></div>
-                    </div>
+              // RENDER DE CARD NORMAL (GRID)
+              return (
+                <div
+                  key={game.npCommunicationId}
+                  id={`game-card-${game.npCommunicationId}`}
+                  className="game-card"
+                  onClick={() => handleSelectGame(game)}
+                >
+                  <div className="game-image-container">
+                    <img
+                      src={game.conceptIconUrl}
+                      alt={game.titleName}
+                      className="game-image"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80";
+                      }}
+                    />
+                  </div>
+                  <div className="game-info">
+                    <span className="game-platform">{game.platform}</span>
+                    <h3 className="game-title">{game.titleName}</h3>
                     
-                    <div className="trophy-details">
-                      <div className="trophy-name-row">
-                        <span className="trophy-name">{trophy.trophyName}</span>
-                        <span className={`trophy-tag ${trophy.trophyType}`}>
-                          {trophy.trophyType}
+                    <div className="progress-section">
+                      <div className="progress-header">
+                        <span>Progreso Trofeos</span>
+                        <span className="progress-percentage">{game.progress}%</span>
+                      </div>
+                      <div className="progress-bar-bg">
+                        <div
+                          className="progress-bar-fill"
+                          style={{ width: `${game.progress}%` }}
+                        ></div>
+                      </div>
+                      
+                      <div className="trophies-summary">
+                        <span className="trophy-mini-item platinum">
+                          🏆 {game.earnedTrophies.platinum}/{game.definedTrophies.platinum}
+                        </span>
+                        <span className="trophy-mini-item gold">
+                          🟡 {game.earnedTrophies.gold}/{game.definedTrophies.gold}
+                        </span>
+                        <span className="trophy-mini-item silver">
+                          ⚪ {game.earnedTrophies.silver}/{game.definedTrophies.silver}
+                        </span>
+                        <span className="trophy-mini-item bronze">
+                          🟤 {game.earnedTrophies.bronze}/{game.definedTrophies.bronze}
                         </span>
                       </div>
-                      <p className="trophy-desc">{trophy.trophyDetail}</p>
-                    </div>
-
-                    <div className="trophy-arrow">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Columna Derecha: Videotutorial (Sticky) */}
-              <div className="video-section">
-                {selectedTrophy && (
-                  <div className="video-card animate-fade-in">
-                    <div className="video-header">
-                      <div className="status-badge" style={{ alignSelf: "flex-start", marginBottom: "0.5rem", background: "rgba(255, 0, 0, 0.1)", border: "1px solid rgba(255, 0, 0, 0.2)", color: "#ff4444" }}>
-                        <span className="dot" style={{ backgroundColor: "#ff0000" }}></span>
-                        Guía de YouTube
-                      </div>
-                      <h3 className="video-title-main">
-                        Tutorial para: &quot;{selectedTrophy.trophyName}&quot;
-                      </h3>
-                      <p className="video-subtitle">Juego: {selectedGame.titleName}</p>
-                    </div>
-
-                    <div className="video-body">
-                      {isLoadingVideo ? (
-                        <div className="loader-wrapper" style={{ padding: "2rem 0" }}>
-                          <div className="ps-spinner"></div>
-                          <p className="loader-text" style={{ fontSize: "0.9rem" }}>Buscando tutorial en YouTube...</p>
-                        </div>
-                      ) : currentVideo ? (
-                        <>
-                          {currentVideo.videoId ? (
-                            <>
-                              <div className="video-container">
-                                <iframe
-                                  src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
-                                  title={currentVideo.title}
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                ></iframe>
-                              </div>
-                              <p className="video-desc">
-                                <strong>Video encontrado:</strong> {currentVideo.title}
-                              </p>
-                            </>
-                          ) : (
-                            <div className="empty-placeholder" style={{ padding: "2.5rem 1.5rem", marginBottom: "1.5rem", background: "rgba(255, 0, 0, 0.03)", border: "1px solid rgba(255, 0, 0, 0.08)" }}>
-                              <span style={{ fontSize: "2.5rem", marginBottom: "0.75rem", display: "block" }}>📺</span>
-                              <p className="empty-text" style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.25rem" }}>Videoguía externa disponible</p>
-                              <p className="empty-subtext" style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.5rem", maxWidth: "none" }}>
-                                Por directivas de seguridad de YouTube, la videoguía no se puede reproducir directamente dentro de la web en producción, pero está lista para ver en su plataforma.
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="video-button-row">
-                            <a
-                              href={currentVideo.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="video-btn-link"
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "4px" }}><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                              {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
-                            </a>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="loader-text">Selecciona un trofeo para cargar su guía.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

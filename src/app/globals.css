@@ -782,3 +782,137 @@ html, body {
   box-shadow: 0 0 10px var(--ps-blue-glow);
 }
 
+/* Card Expandida Inline */
+.game-card.expanded {
+  grid-column: 1 / -1;
+  cursor: default;
+  background: rgba(14, 16, 37, 0.9);
+  border: 1px solid var(--border-color-active);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), var(--shadow-glow);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.game-card.expanded:hover {
+  transform: none;
+  background: rgba(14, 16, 37, 0.9);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), var(--shadow-glow);
+}
+
+.close-expand-btn {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: -0.5rem;
+}
+
+.close-expand-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.expanded-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.expanded-cover-wrapper {
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: #121424;
+}
+
+.expanded-game-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.expanded-game-info {
+  flex-grow: 1;
+}
+
+.expanded-game-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.expanded-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .expanded-body {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+}
+
+.expanded-sub-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expanded-trophies-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.trophies-scroll-container {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Scrollbar personalizado para la lista interna */
+.trophies-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trophies-scroll-container::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+}
+
+.trophies-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+
+.trophies-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.expanded-video-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+

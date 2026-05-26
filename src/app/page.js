@@ -126,7 +126,7 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `/api/trophies?username=${encodeURIComponent(activeUsername)}&gameId=${game.npCommunicationId}`
+        `/api/trophies?username=${encodeURIComponent(activeUsername)}&gameId=${game.npCommunicationId}&platform=${encodeURIComponent(game.platform)}`
       );
       const data = await res.json();
 

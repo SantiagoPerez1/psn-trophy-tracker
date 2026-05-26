@@ -5,6 +5,7 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get("username");
   const gameId = searchParams.get("gameId");
+  const platform = searchParams.get("platform");
 
   if (!username || !gameId) {
     return NextResponse.json(
@@ -14,7 +15,7 @@ export async function GET(request) {
   }
 
   try {
-    const trophies = await getPendingTrophiesForGame(username, gameId);
+    const trophies = await getPendingTrophiesForGame(username, gameId, platform);
     return NextResponse.json({ trophies });
   } catch (error) {
     console.error(`Error en API /api/trophies para ${username} en juego ${gameId}:`, error);

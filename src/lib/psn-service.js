@@ -232,7 +232,7 @@ export async function getGamesForUser(psnId) {
 /**
  * Obtiene los trofeos pendientes de un juego para un usuario específico
  */
-export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
+export async function getPendingTrophiesForGame(psnId, npCommunicationId, platform) {
   if (!process.env.PSN_NPSSO) {
     console.log(`[Modo Simulación] Devolviendo trofeos mock para: ${npCommunicationId}`);
     return MOCK_TROPHIES[npCommunicationId] || [];
@@ -255,11 +255,15 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
       throw new Error("USER_NOT_FOUND");
     }
 
+    // Determinar npServiceName basándose en la plataforma (los juegos de PS5 requieren "trophy2" para el progreso)
+    const isPS5 = platform?.toUpperCase().includes("PS5");
+    const npServiceName = isPS5 ? "trophy2" : "trophy";
+
     // Obtener todos los trofeos del juego
-    const allTrophiesResponse = await getTitleTrophies(auth, npCommunicationId, "all");
+    const allTrophiesResponse = await getTitleTrophies(auth, npCommunicationId, "all", { npServiceName });
     
     // Obtener trofeos conseguidos por el usuario (aquí se incluyen datos de progreso de trofeos de PS5)
-    const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all");
+    const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all", { npServiceName });
 
     // Mapear trofeos y detectar cuáles no han sido obtenidos
     const earnedMap = new Map();

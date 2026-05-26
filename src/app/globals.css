@@ -467,7 +467,7 @@ html, body {
   border-radius: 16px;
   padding: 1.25rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -536,8 +536,9 @@ html, body {
 .trophy-name-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
 .trophy-name {
@@ -570,7 +571,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  max-width: 280px;
+  width: 100%;
+  max-width: 340px;
 }
 
 .trophy-progress-bar-bg {
@@ -925,7 +927,7 @@ html, body {
 }
 
 .trophies-scroll-container {
-  max-height: 380px;
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 0.5rem;
   display: flex;

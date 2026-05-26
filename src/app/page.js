@@ -439,15 +439,15 @@ export default function Home() {
                                     <span className={`trophy-tag ${trophy.trophyType}`}>
                                       {trophy.trophyType}
                                     </span>
-                                    {trophy.progress && (
+                                    {trophy.progress && trophy.progress.target > 0 && (
                                       <span className="trophy-progress-badge">
                                         {trophy.progress.value} / {trophy.progress.target}
                                       </span>
                                     )}
                                   </div>
                                   <p className="trophy-desc">{trophy.trophyDetail}</p>
-                                  
-                                  {trophy.progress && (
+
+                                  {trophy.progress && trophy.progress.target > 0 && (
                                     <div className="trophy-progress-container">
                                       <div className="trophy-progress-bar-bg">
                                         <div 

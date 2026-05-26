@@ -473,6 +473,7 @@ html, body {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .trophy-card:hover {

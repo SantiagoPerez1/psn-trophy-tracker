@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Home() {
   const [usernameInput, setUsernameInput] = useState("");
@@ -16,8 +16,10 @@ export default function Home() {
   const [trophies, setTrophies] = useState([]);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [currentVideo, setCurrentVideo] = useState(null);
+  
+  // Estado para la ordenación de juegos
+  const [sortBy, setSortBy] = useState("progress-desc");
 
-  // Auto-buscar si ya hay un usuario activo para refrescar
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!usernameInput.trim()) return;
@@ -54,6 +56,14 @@ export default function Home() {
     setSelectedTrophy(null);
     setCurrentVideo(null);
     setError("");
+
+    // Auto-scroll suave a la sección de trofeos para una mejor experiencia de usuario (UX)
+    setTimeout(() => {
+      const element = document.getElementById("trophies-section");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 200);
 
     try {
       const res = await fetch(
@@ -127,6 +137,14 @@ export default function Home() {
     );
   };
 
+  // Ordenar la lista de juegos antes de renderizarla
+  const sortedGames = [...games].sort((a, b) => {
+    if (sortBy === "progress-desc") return b.progress - a.progress;
+    if (sortBy === "progress-asc") return a.progress - b.progress;
+    if (sortBy === "name-asc") return a.titleName.localeCompare(b.titleName);
+    return 0;
+  });
+
   return (
     <div className="app-container">
       {/* Cabecera */}
@@ -159,7 +177,7 @@ export default function Home() {
             <input
               type="text"
               className="search-input"
-              placeholder="Ej. SantiagoPerez1"
+              placeholder="Ej. San16_uru"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
               disabled={isLoadingGames}
@@ -190,10 +208,26 @@ export default function Home() {
       {/* Resultados de Juegos */}
       {!isLoadingGames && games.length > 0 && (
         <div className="animate-fade-in delay-2">
-          <h2 className="section-title">Juegos Recientes de {activeUsername}</h2>
+          {/* Header con controles de ordenación */}
+          <div className="games-controls-header">
+            <h2 className="section-title">Juegos Recientes de {activeUsername}</h2>
+            <div className="sort-container">
+              <label htmlFor="sort-select">Ordenar por:</label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
+                <option value="progress-desc">Progreso (Mayor a Menor)</option>
+                <option value="progress-asc">Progreso (Menor a Mayor)</option>
+                <option value="name-asc">Nombre (A-Z)</option>
+              </select>
+            </div>
+          </div>
           
           <div className="games-grid">
-            {games.map((game) => (
+            {sortedGames.map((game) => (
               <div
                 key={game.npCommunicationId}
                 className={`game-card ${selectedGame?.npCommunicationId === game.npCommunicationId ? "selected" : ""}`}
@@ -250,7 +284,7 @@ export default function Home() {
 
       {/* Detalle del Juego Seleccionado (Trofeos Pendientes + Guía de YouTube) */}
       {!isLoadingGames && selectedGame && (
-        <div className="animate-fade-in delay-3">
+        <div id="trophies-section" className="animate-fade-in delay-3" style={{ scrollMarginTop: "2rem", paddingTop: "1rem" }}>
           <h2 className="section-title">Trofeos Pendientes de &quot;{selectedGame.titleName}&quot;</h2>
           
           {isLoadingTrophies ? (
@@ -328,25 +362,28 @@ export default function Home() {
                       ) : currentVideo ? (
                         <>
                           {currentVideo.videoId ? (
-                            <div className="video-container">
-                              <iframe
-                                src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
-                                title={currentVideo.title}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                              ></iframe>
-                            </div>
+                            <>
+                              <div className="video-container">
+                                <iframe
+                                  src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
+                                  title={currentVideo.title}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                ></iframe>
+                              </div>
+                              <p className="video-desc">
+                                <strong>Video encontrado:</strong> {currentVideo.title}
+                              </p>
+                            </>
                           ) : (
-                            <div className="empty-placeholder" style={{ padding: "2rem 1rem", marginBottom: "1rem" }}>
-                              <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📺</span>
-                              <p className="empty-text" style={{ fontSize: "0.95rem" }}>No se pudo incrustar el video directo</p>
-                              <p className="empty-subtext" style={{ fontSize: "0.8rem" }}>Pero puedes abrir la búsqueda directamente en YouTube.</p>
+                            <div className="empty-placeholder" style={{ padding: "2.5rem 1.5rem", marginBottom: "1.5rem", background: "rgba(255, 0, 0, 0.03)", border: "1px solid rgba(255, 0, 0, 0.08)" }}>
+                              <span style={{ fontSize: "2.5rem", marginBottom: "0.75rem", display: "block" }}>📺</span>
+                              <p className="empty-text" style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.25rem" }}>Videoguía externa disponible</p>
+                              <p className="empty-subtext" style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.5rem", maxWidth: "none" }}>
+                                Por directivas de seguridad de YouTube, la videoguía no se puede reproducir directamente dentro de la web en producción, pero está lista para ver en su plataforma.
+                              </p>
                             </div>
                           )}
-
-                          <p className="video-desc">
-                            <strong>Video encontrado:</strong> {currentVideo.title}
-                          </p>
 
                           <div className="video-button-row">
                             <a
@@ -356,7 +393,7 @@ export default function Home() {
                               className="video-btn-link"
                             >
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "4px" }}><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                              Abrir en YouTube
+                              {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
                             </a>
                           </div>
                         </>

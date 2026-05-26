@@ -210,6 +210,16 @@ export default function Home() {
     ? trophies.filter(t => t.trophyGroupId === "default" || !t.trophyGroupId)
     : trophies;
 
+  // Agrupar los trofeos por su grupo (Juego Base y cada DLC)
+  const groupedTrophies = displayedTrophies.reduce((groups, trophy) => {
+    const groupName = trophy.trophyGroupName || (trophy.trophyGroupId === "default" ? "Juego Base" : "Expansión DLC");
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(trophy);
+    return groups;
+  }, {});
+
   // Ordenar la lista de juegos antes de renderizarla
   const sortedGames = [...games].sort((a, b) => {
     if (sortBy === "progress-desc") return b.progress - a.progress;
@@ -338,7 +348,7 @@ export default function Home() {
                   <div
                     key={game.npCommunicationId}
                     id={`game-card-${game.npCommunicationId}`}
-                    className="game-card expanded animate-fade-in"
+                    className={`game-card expanded animate-fade-in ${game.earnedTrophies?.platinum > 0 ? "has-platinum" : ""}`}
                   >
                     {/* Botón de cerrar */}
                     <button 
@@ -436,54 +446,61 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className="trophies-scroll-container">
-                            {displayedTrophies.map((trophy) => (
-                              <div
-                                key={trophy.trophyId}
-                                className={`trophy-card ${selectedTrophy?.trophyId === trophy.trophyId ? "active" : ""}`}
-                                onClick={() => handleSelectTrophy(trophy, game)}
-                              >
-                                <div className="trophy-icon-wrapper">
-                                  <img
-                                    src={trophy.trophyIconUrl}
-                                    alt="Icon"
-                                    className="trophy-badge-icon"
-                                    onError={(e) => {
-                                      e.target.onerror = null;
-                                      e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
-                                    }}
-                                  />
-                                  <div className={`trophy-type-indicator ${trophy.trophyType}`}></div>
+                            {Object.entries(groupedTrophies).map(([groupName, groupTrophies]) => (
+                              <div key={groupName} className="trophy-group-section">
+                                <div className="trophy-group-divider">
+                                  <span>{groupName}</span>
                                 </div>
-                                
-                                <div className="trophy-details">
-                                  <div className="trophy-name-row">
-                                    <span className="trophy-name">{trophy.trophyName}</span>
-                                    <span className={`trophy-tag ${trophy.trophyType}`}>
-                                      {trophy.trophyType}
-                                    </span>
-                                    {trophy.progress && trophy.progress.target > 0 && (
-                                      <span className="trophy-progress-badge">
-                                        {trophy.progress.value} / {trophy.progress.target}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="trophy-desc">{trophy.trophyDetail}</p>
-
-                                  {trophy.progress && trophy.progress.target > 0 && (
-                                    <div className="trophy-progress-container">
-                                      <div className="trophy-progress-bar-bg">
-                                        <div 
-                                          className="trophy-progress-bar-fill" 
-                                          style={{ width: `${trophy.progress.rate}%` }}
-                                        ></div>
-                                      </div>
-                                      <div className="trophy-progress-text">
-                                        <span>Progreso de objetivo</span>
-                                        <span>{trophy.progress.rate}%</span>
-                                      </div>
+                                {groupTrophies.map((trophy) => (
+                                  <div
+                                    key={trophy.trophyId}
+                                    className={`trophy-card ${selectedTrophy?.trophyId === trophy.trophyId ? "active" : ""}`}
+                                    onClick={() => handleSelectTrophy(trophy, game)}
+                                  >
+                                    <div className="trophy-icon-wrapper">
+                                      <img
+                                        src={trophy.trophyIconUrl}
+                                        alt="Icon"
+                                        className="trophy-badge-icon"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
+                                        }}
+                                      />
+                                      <div className={`trophy-type-indicator ${trophy.trophyType}`}></div>
                                     </div>
-                                  )}
-                                </div>
+                                    
+                                    <div className="trophy-details">
+                                      <div className="trophy-name-row">
+                                        <span className="trophy-name">{trophy.trophyName}</span>
+                                        <span className={`trophy-tag ${trophy.trophyType}`}>
+                                          {trophy.trophyType}
+                                        </span>
+                                        {trophy.progress && trophy.progress.target > 0 && (
+                                          <span className="trophy-progress-badge">
+                                            {trophy.progress.value} / {trophy.progress.target}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="trophy-desc">{trophy.trophyDetail}</p>
+
+                                      {trophy.progress && trophy.progress.target > 0 && (
+                                        <div className="trophy-progress-container">
+                                          <div className="trophy-progress-bar-bg">
+                                            <div 
+                                              className="trophy-progress-bar-fill" 
+                                              style={{ width: `${trophy.progress.rate}%` }}
+                                            ></div>
+                                          </div>
+                                          <div className="trophy-progress-text">
+                                            <span>Progreso de objetivo</span>
+                                            <span>{trophy.progress.rate}%</span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             ))}
                           </div>
@@ -574,7 +591,7 @@ export default function Home() {
                 <div
                   key={game.npCommunicationId}
                   id={`game-card-${game.npCommunicationId}`}
-                  className="game-card"
+                  className={`game-card ${game.earnedTrophies?.platinum > 0 ? "has-platinum" : ""}`}
                   onClick={() => handleSelectGame(game)}
                 >
                   <div className="game-image-container">

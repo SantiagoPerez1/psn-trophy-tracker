@@ -4,7 +4,8 @@ import {
   getUserTitles,
   getUserTrophiesEarnedForTitle,
   makeUniversalSearch,
-  getTitleTrophies
+  getTitleTrophies,
+  getTitleTrophyGroups
 } from "psn-api";
 
 // Caché para evitar re-autenticar en cada petición (el token dura 1 hora)
@@ -284,6 +285,21 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
       });
     }
 
+    // Obtener los grupos de trofeos para saber el nombre de cada grupo (juego base y DLCs)
+    const groupNameMap = new Map();
+    try {
+      const trophyGroupsResponse = await getTitleTrophyGroups(auth, npCommunicationId, { npServiceName });
+      if (trophyGroupsResponse?.trophyGroups) {
+        trophyGroupsResponse.trophyGroups.forEach(g => {
+          // El grupo "default" representa el Juego Base
+          const name = g.trophyGroupId === "default" ? "Juego Base" : g.trophyGroupName;
+          groupNameMap.set(g.trophyGroupId, name);
+        });
+      }
+    } catch (grpErr) {
+      console.warn("No se pudieron obtener los nombres de los grupos de trofeos de PSN. Se usarán valores predeterminados:", grpErr);
+    }
+
     const pendingTrophies = allTrophiesResponse.trophies
       .filter(t => {
         const isEarned = earnedMap.get(t.trophyId) ?? false;
@@ -296,6 +312,7 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
         trophyType: t.trophyType,
         trophyIconUrl: t.trophyIconUrl,
         trophyGroupId: t.trophyGroupId, // ID del grupo (para distinguir juego base "default" de expansiones/DLCs)
+        trophyGroupName: groupNameMap.get(t.trophyGroupId) || (t.trophyGroupId === "default" ? "Juego Base" : `DLC - Expansión ${t.trophyGroupId}`), // Nombre descriptivo del DLC o Juego Base
         earned: false,
         progress: progressMap.get(t.trophyId) || null // Añadir los datos de progreso real (si existen)
       }));

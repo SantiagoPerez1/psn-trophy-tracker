@@ -1104,5 +1104,60 @@ html, body {
   background-color: white;
 }
 
+.trophy-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.trophy-group-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.trophy-group-divider span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-right: 1rem;
+}
+
+.trophy-group-divider::after {
+  content: '';
+  flex-grow: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Tarjeta con Platino conseguido */
+.game-card.has-platinum {
+  border-color: rgba(0, 114, 206, 0.85) !important;
+  box-shadow: 0 0 18px rgba(0, 114, 206, 0.5) !important;
+}
+
+.game-card.has-platinum:hover {
+  box-shadow: 0 0 25px rgba(0, 114, 206, 0.7), 0 12px 24px -10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.game-card.has-platinum::after {
+  content: '🏆 PLATINO';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(135deg, #0072ce, #8a2be2);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 114, 206, 0.3);
+  z-index: 5;
+}
+
 
 

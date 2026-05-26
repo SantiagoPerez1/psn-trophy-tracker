@@ -161,7 +161,7 @@ export async function getGamesForUser(psnId) {
     const auth = await getAuth();
     
     // Buscar al usuario para obtener su accountId
-    const searchResponse = await makeUniversalSearch(auth, psnId, "SocialUsers");
+    const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
     const accountId = searchResponse.results?.[0]?.socialMetadata?.accountId;
     
     if (!accountId) {
@@ -205,7 +205,7 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
     const auth = await getAuth();
     
     // Obtener accountId del usuario
-    const searchResponse = await makeUniversalSearch(auth, psnId, "SocialUsers");
+    const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
     const accountId = searchResponse.results?.[0]?.socialMetadata?.accountId;
     
     if (!accountId) {

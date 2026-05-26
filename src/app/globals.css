@@ -915,4 +915,75 @@ html, body {
   flex-direction: column;
 }
 
+/* Historial de Búsquedas */
+.search-history-container {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@media (min-width: 600px) {
+  .search-history-container {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+}
+
+.history-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.history-tag-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-tag-btn:hover {
+  background: var(--ps-blue-glow);
+  border-color: var(--ps-blue);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.clear-history-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: color 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.clear-history-btn:hover {
+  color: #ef4444;
+  text-decoration: underline;
+}
+
+
 

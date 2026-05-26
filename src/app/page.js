@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [usernameInput, setUsernameInput] = useState("");
@@ -20,10 +20,43 @@ export default function Home() {
   // Estado para la ordenación de juegos
   const [sortBy, setSortBy] = useState("progress-desc");
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!usernameInput.trim()) return;
+  // Estado para el historial de búsquedas locales (en la PC del usuario)
+  const [searchHistory, setSearchHistory] = useState([]);
 
+  // Cargar el historial desde localStorage al montar la página
+  useEffect(() => {
+    const savedHistory = localStorage.getItem("psn_trophy_tracker_history");
+    if (savedHistory) {
+      try {
+        setSearchHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Error al cargar el historial desde localStorage:", e);
+      }
+    }
+  }, []);
+
+  const saveToHistory = (username) => {
+    const formattedUsername = username.trim();
+    if (!formattedUsername) return;
+
+    setSearchHistory((prev) => {
+      // Filtrar el nombre si ya existía para moverlo al principio
+      const filtered = prev.filter(
+        (u) => u.toLowerCase() !== formattedUsername.toLowerCase()
+      );
+      const updated = [formattedUsername, ...filtered].slice(0, 5); // Limitar a las últimas 5 búsquedas
+      localStorage.setItem("psn_trophy_tracker_history", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleClearHistory = (e) => {
+    e.stopPropagation();
+    setSearchHistory([]);
+    localStorage.removeItem("psn_trophy_tracker_history");
+  };
+
+  const triggerSearchForUser = async (username) => {
     setIsLoadingGames(true);
     setError("");
     setSelectedGame(null);
@@ -32,13 +65,14 @@ export default function Home() {
     setCurrentVideo(null);
     
     try {
-      const res = await fetch(`/api/games?username=${encodeURIComponent(usernameInput.trim())}`);
+      const res = await fetch(`/api/games?username=${encodeURIComponent(username.trim())}`);
       const data = await res.json();
       
       if (res.ok) {
         setGames(data.games || []);
         setIsSimulation(data.isSimulation);
-        setActiveUsername(usernameInput.trim());
+        setActiveUsername(username.trim());
+        saveToHistory(username.trim());
       } else {
         setError(data.error || "Ocurrió un error al buscar los juegos.");
       }
@@ -48,6 +82,12 @@ export default function Home() {
     } finally {
       setIsLoadingGames(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    if (e) e.preventDefault();
+    if (!usernameInput.trim()) return;
+    triggerSearchForUser(usernameInput.trim());
   };
 
   const handleSelectGame = async (game) => {
@@ -196,6 +236,35 @@ export default function Home() {
             {isLoadingGames ? "Buscando..." : "Escanear"}
           </button>
         </form>
+
+        {/* Historial de búsquedas recientes (Solo PC / LocalStorage) */}
+        {searchHistory.length > 0 && (
+          <div className="search-history-container">
+            <span className="history-label">Búsquedas recientes:</span>
+            <div className="history-tags">
+              {searchHistory.map((username) => (
+                <button
+                  key={username}
+                  className="history-tag-btn"
+                  onClick={() => {
+                    setUsernameInput(username);
+                    triggerSearchForUser(username);
+                  }}
+                  disabled={isLoadingGames}
+                >
+                  {username}
+                </button>
+              ))}
+              <button 
+                className="clear-history-btn" 
+                onClick={handleClearHistory}
+                disabled={isLoadingGames}
+              >
+                Limpiar historial
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Mensaje de Error */}

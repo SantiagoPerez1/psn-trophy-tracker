@@ -12,6 +12,50 @@ const MOCK_VIDEOS = {
   "Portador de esquirlas Radahn": "https://www.youtube.com/watch?v=Vl3j-6m0-74"
 };
 
+// Instancias públicas de Invidious para buscar videos en Vercel sin ser bloqueados por YouTube
+const INVIDIOUS_INSTANCES = [
+  "https://yewtu.be",
+  "https://invidious.privacydev.net",
+  "https://invidious.flokinet.to",
+  "https://inv.tux.im",
+  "https://invidious.nerdvpn.de"
+];
+
+async function searchInvidious(query) {
+  console.log(`[Invidious Search] Intentando buscar en instancias públicas para evitar bloqueos...`);
+  
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+      // Petición con un límite de tiempo de 4 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (res.ok) {
+        const data = await res.json();
+        const firstVideo = data?.[0]; // Invidious devuelve un array
+        
+        if (firstVideo && firstVideo.videoId) {
+          console.log(`[Invidious Search] Éxito usando la instancia: ${instance}`);
+          return {
+            title: firstVideo.title,
+            videoId: firstVideo.videoId,
+            url: `https://www.youtube.com/watch?v=${firstVideo.videoId}`,
+            description: firstVideo.description || "",
+            source: "invidious_api"
+          };
+        }
+      }
+    } catch (e) {
+      console.warn(`[Invidious Search] Fallo en la instancia ${instance}:`, e.message);
+    }
+  }
+  return null;
+}
+
 /**
  * Busca un videotutorial de YouTube relacionado con un trofeo específico de un juego
  * @param {string} gameName Nombre del juego
@@ -26,6 +70,7 @@ export async function searchTrophyVideo(gameName, trophyName) {
       title: `Guía del trofeo: ${trophyName}`,
       videoId: videoId,
       url: videoUrl,
+      description: "Esta es una guía de demostración para ayudarte a conseguir el trofeo.",
       source: "mock"
     };
   }
@@ -48,6 +93,7 @@ export async function searchTrophyVideo(gameName, trophyName) {
           title: item.snippet.title,
           videoId: item.id.videoId,
           url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+          description: item.snippet.description || "",
           source: "official_api"
         };
       }
@@ -56,7 +102,13 @@ export async function searchTrophyVideo(gameName, trophyName) {
     }
   }
 
-  // 3. Fallback al scraper youtube-search-api
+  // 3. Intentar buscar a través de Invidious para evadir bloqueos en servidores cloud (Vercel)
+  const invidiousResult = await searchInvidious(query);
+  if (invidiousResult) {
+    return invidiousResult;
+  }
+
+  // 4. Fallback al scraper local de youtube-search-api (funciona en local)
   try {
     const results = await youtubeSearch.GetListByKeyword(query, false, 1);
     const firstResult = results?.items?.[0];
@@ -66,6 +118,7 @@ export async function searchTrophyVideo(gameName, trophyName) {
         title: firstResult.title,
         videoId: firstResult.id,
         url: `https://www.youtube.com/watch?v=${firstResult.id}`,
+        description: firstResult.description || "",
         source: "scraper_api"
       };
     }
@@ -73,11 +126,12 @@ export async function searchTrophyVideo(gameName, trophyName) {
     console.error("Error buscando video mediante scraper:", error);
   }
 
-  // 4. Si todo falla, construimos un enlace genérico de búsqueda
+  // 5. Si todo falla, construimos un enlace genérico de búsqueda
   return {
     title: `Buscar "${trophyName}" en YouTube`,
     videoId: null,
     url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+    description: "",
     source: "generic_link"
   };
 }

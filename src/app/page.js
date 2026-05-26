@@ -17,6 +17,10 @@ export default function Home() {
   const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [currentVideo, setCurrentVideo] = useState(null);
   
+  // Nuevos estados para la guía de IA / Fallback
+  const [trophyGuide, setTrophyGuide] = useState("");
+  const [guideSource, setGuideSource] = useState("");
+  
   // Estado para la ordenación de juegos
   const [sortBy, setSortBy] = useState("progress-desc");
 
@@ -63,6 +67,8 @@ export default function Home() {
     setTrophies([]);
     setSelectedTrophy(null);
     setCurrentVideo(null);
+    setTrophyGuide("");
+    setGuideSource("");
     
     try {
       const res = await fetch(`/api/games?username=${encodeURIComponent(username.trim())}`);
@@ -97,6 +103,8 @@ export default function Home() {
       setTrophies([]);
       setSelectedTrophy(null);
       setCurrentVideo(null);
+      setTrophyGuide("");
+      setGuideSource("");
       return;
     }
 
@@ -104,6 +112,8 @@ export default function Home() {
     setIsLoadingTrophies(true);
     setSelectedTrophy(null);
     setCurrentVideo(null);
+    setTrophyGuide("");
+    setGuideSource("");
     setError("");
 
     // Auto-scroll suave hacia la tarjeta de juego que se va a expandir
@@ -141,18 +151,22 @@ export default function Home() {
     setSelectedTrophy(trophy);
     setIsLoadingVideo(true);
     setCurrentVideo(null);
+    setTrophyGuide("");
+    setGuideSource("");
 
     const game = gameContext || selectedGame;
     if (!game) return;
 
     try {
       const res = await fetch(
-        `/api/video?gameName=${encodeURIComponent(game.titleName)}&trophyName=${encodeURIComponent(trophy.trophyName)}`
+        `/api/video?gameName=${encodeURIComponent(game.titleName)}&trophyName=${encodeURIComponent(trophy.trophyName)}&trophyDetail=${encodeURIComponent(trophy.trophyDetail)}`
       );
       const data = await res.json();
 
       if (res.ok) {
         setCurrentVideo(data.video);
+        setTrophyGuide(data.guide || "");
+        setGuideSource(data.guideSource || "");
       } else {
         setCurrentVideo({
           title: `Buscar "${trophy.trophyName}" en YouTube`,
@@ -162,6 +176,8 @@ export default function Home() {
           )}`,
           source: "error_fallback"
         });
+        setTrophyGuide(`Consigue el trofeo consultando la guía oficial de PlayStation.`);
+        setGuideSource("fallback");
       }
     } catch (err) {
       console.error(err);
@@ -325,6 +341,8 @@ export default function Home() {
                         setTrophies([]);
                         setSelectedTrophy(null);
                         setCurrentVideo(null);
+                        setTrophyGuide("");
+                        setGuideSource("");
                       }}
                     >
                       ✕ Cerrar Detalles
@@ -479,6 +497,18 @@ export default function Home() {
                                       {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
                                     </a>
                                   </div>
+
+                                  {/* Resumen explicativo del trofeo (IA Gemini o Fallback) */}
+                                  {trophyGuide && (
+                                    <div className="trophy-guide-box animate-fade-in" style={{ marginTop: "1.25rem", padding: "1.15rem", background: "rgba(255, 255, 255, 0.02)", borderRadius: "14px", border: "1px solid var(--border-color)" }}>
+                                      <h5 style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-primary)" }}>
+                                        📝 Guía Rápida {guideSource === "gemini-ai" ? "🤖 (IA Gemini)" : "📖"}
+                                      </h5>
+                                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
+                                        {trophyGuide}
+                                      </p>
+                                    </div>
+                                  )}
                                 </>
                               ) : null}
                             </div>

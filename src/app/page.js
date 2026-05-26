@@ -439,8 +439,28 @@ export default function Home() {
                                     <span className={`trophy-tag ${trophy.trophyType}`}>
                                       {trophy.trophyType}
                                     </span>
+                                    {trophy.progress && (
+                                      <span className="trophy-progress-badge">
+                                        {trophy.progress.value} / {trophy.progress.target}
+                                      </span>
+                                    )}
                                   </div>
                                   <p className="trophy-desc">{trophy.trophyDetail}</p>
+                                  
+                                  {trophy.progress && (
+                                    <div className="trophy-progress-container">
+                                      <div className="trophy-progress-bar-bg">
+                                        <div 
+                                          className="trophy-progress-bar-fill" 
+                                          style={{ width: `${trophy.progress.rate}%` }}
+                                        ></div>
+                                      </div>
+                                      <div className="trophy-progress-text">
+                                        <span>Progreso de objetivo</span>
+                                        <span>{trophy.progress.rate}%</span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}

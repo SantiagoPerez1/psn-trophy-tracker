@@ -80,7 +80,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Consigue todas las reliquias y empuñaduras de espada.",
       trophyType: "gold",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: { rate: 71, value: 10, target: 14 } // Datos de progreso simulados para PS5
     },
     {
       trophyId: 2,
@@ -88,7 +89,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Derrota a la reina valquiria Gná.",
       trophyType: "silver",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: null // Un jefe no suele llevar un contador numérico sino sí/no
     },
     {
       trophyId: 3,
@@ -96,7 +98,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Recoge una flor de cada uno de los nueve reinos.",
       trophyType: "bronze",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: { rate: 66, value: 6, target: 9 }
     }
   ],
   "NPWR31201_00": [
@@ -106,7 +109,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Compra todas las mejoras de tecnología de traje.",
       trophyType: "silver",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: { rate: 80, value: 4, target: 5 }
     },
     {
       trophyId: 2,
@@ -114,7 +118,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Encuentra y completa todos los experimentos de la Fundación Emily-May.",
       trophyType: "bronze",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: { rate: 55, value: 5, target: 9 }
     }
   ],
   "NPWR22143_00": [
@@ -124,7 +129,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Consigue el final 'Señor de Elden'.",
       trophyType: "gold",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: null
     },
     {
       trophyId: 2,
@@ -132,7 +138,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Derrota a la portadora de la gran runa, Malenia, Espada de Miquella.",
       trophyType: "silver",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: null
     },
     {
       trophyId: 3,
@@ -140,7 +147,8 @@ const MOCK_TROPHIES = {
       trophyDetail: "Derrota al portador de la gran runa, el Azote de las Estrellas Radahn.",
       trophyType: "bronze",
       trophyIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80",
-      earned: false
+      earned: false,
+      progress: null
     }
   ]
 };
@@ -250,14 +258,25 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
     // Obtener todos los trofeos del juego
     const allTrophiesResponse = await getTitleTrophies(auth, npCommunicationId, "all");
     
-    // Obtener trofeos conseguidos por el usuario
+    // Obtener trofeos conseguidos por el usuario (aquí se incluyen datos de progreso de trofeos de PS5)
     const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all");
 
     // Mapear trofeos y detectar cuáles no han sido obtenidos
     const earnedMap = new Map();
+    const progressMap = new Map();
+    
     if (earnedTrophiesResponse.trophies) {
       earnedTrophiesResponse.trophies.forEach(t => {
         earnedMap.set(t.trophyId, t.earned);
+        
+        // Si tiene datos de progreso de trofeo nativos (común en juegos de PS5)
+        if (t.progressRate !== undefined) {
+          progressMap.set(t.trophyId, {
+            rate: t.progressRate,
+            value: t.progressValue || 0,
+            target: t.progressTargetValue || 0
+          });
+        }
       });
     }
 
@@ -272,7 +291,8 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
         trophyDetail: t.trophyDetail,
         trophyType: t.trophyType,
         trophyIconUrl: t.trophyIconUrl,
-        earned: false
+        earned: false,
+        progress: progressMap.get(t.trophyId) || null // Añadir los datos de progreso real (si existen)
       }));
 
     return pendingTrophies;

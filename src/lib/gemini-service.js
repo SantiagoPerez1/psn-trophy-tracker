@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
  * Genera una guía/resumen sobre cómo conseguir un trofeo específico
@@ -13,7 +13,7 @@ export async function generateTrophyGuide(gameName, trophyName, trophyDetail, vi
   if (apiKey) {
     try {
       // Inicializar el SDK de Gemini
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenerativeAI(apiKey);
       const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt = `

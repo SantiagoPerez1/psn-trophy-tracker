@@ -24,6 +24,9 @@ export default function Home() {
   // Estado para la ordenación de juegos
   const [sortBy, setSortBy] = useState("progress-desc");
 
+  // Estado para filtrar solo trofeos del juego base (para el Platino)
+  const [onlyBaseGame, setOnlyBaseGame] = useState(false);
+
   // Estado para el historial de búsquedas locales (en la PC del usuario)
   const [searchHistory, setSearchHistory] = useState([]);
 
@@ -201,6 +204,11 @@ export default function Home() {
       </svg>
     );
   };
+
+  // Filtrar los trofeos si el switch de juego base está activado
+  const displayedTrophies = onlyBaseGame
+    ? trophies.filter(t => t.trophyGroupId === "default" || !t.trophyGroupId)
+    : trophies;
 
   // Ordenar la lista de juegos antes de renderizarla
   const sortedGames = [...games].sort((a, b) => {
@@ -397,24 +405,38 @@ export default function Home() {
                     <div className="expanded-body">
                       {/* Columna Izquierda: Trofeos Pendientes */}
                       <div className="expanded-trophies-list">
-                        <h4 className="expanded-sub-title">
-                          <TrophyIcon type="platinum" /> Trofeos Pendientes ({trophies.length})
-                        </h4>
+                        <div className="expanded-list-header">
+                          <h4 className="expanded-sub-title" style={{ marginBottom: 0 }}>
+                            <TrophyIcon type="platinum" /> Trofeos Pendientes ({displayedTrophies.length})
+                          </h4>
+                          
+                          <div className="filter-switch-container">
+                            <span className="filter-switch-label">Solo Platino (Base)</span>
+                            <label className="toggle-switch">
+                              <input 
+                                type="checkbox" 
+                                checked={onlyBaseGame} 
+                                onChange={(e) => setOnlyBaseGame(e.target.checked)} 
+                              />
+                              <span className="slider"></span>
+                            </label>
+                          </div>
+                        </div>
                         
                         {isLoadingTrophies ? (
                           <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
                             <div className="ps-spinner" style={{ width: "30px", height: "30px" }}></div>
                             <p className="loader-text" style={{ fontSize: "0.85rem" }}>Obteniendo trofeos bloqueados...</p>
                           </div>
-                        ) : trophies.length === 0 ? (
+                        ) : displayedTrophies.length === 0 ? (
                           <div className="empty-placeholder" style={{ padding: "2rem" }}>
                             <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🎉</span>
-                            <p className="empty-text" style={{ fontSize: "1rem" }}>¡Juego Completado!</p>
-                            <p className="empty-subtext" style={{ fontSize: "0.8rem" }}>Has conseguido el 100% de los trofeos de este juego.</p>
+                            <p className="empty-text" style={{ fontSize: "1rem" }}>¡Juego Completado o Filtrado!</p>
+                            <p className="empty-subtext" style={{ fontSize: "0.8rem" }}>No quedan trofeos pendientes que coincidan con el filtro actual.</p>
                           </div>
                         ) : (
                           <div className="trophies-scroll-container">
-                            {trophies.map((trophy) => (
+                            {displayedTrophies.map((trophy) => (
                               <div
                                 key={trophy.trophyId}
                                 className={`trophy-card ${selectedTrophy?.trophyId === trophy.trophyId ? "active" : ""}`}

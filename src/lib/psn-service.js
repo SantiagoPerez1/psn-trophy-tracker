@@ -295,6 +295,7 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
         trophyDetail: t.trophyDetail,
         trophyType: t.trophyType,
         trophyIconUrl: t.trophyIconUrl,
+        trophyGroupId: t.trophyGroupId, // ID del grupo (para distinguir juego base "default" de expansiones/DLCs)
         earned: false,
         progress: progressMap.get(t.trophyId) || null // Añadir los datos de progreso real (si existen)
       }));

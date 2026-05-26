@@ -18,9 +18,15 @@ export async function GET(request) {
     return NextResponse.json({ trophies });
   } catch (error) {
     console.error(`Error en API /api/trophies para ${username} en juego ${gameId}:`, error);
+    
+    let userFriendlyError = "Error al obtener los trofeos del juego.";
+    if (error.message === "PROFILE_PRIVATE") {
+      userFriendlyError = `El perfil de trofeos de este usuario es privado y no permite el acceso a sus detalles de juego.`;
+    }
+    
     return NextResponse.json(
-      { error: "Error al obtener los trofeos del juego. Inténtalo de nuevo." },
-      { status: 500 }
+      { error: userFriendlyError },
+      { status: 400 }
     );
   }
 }

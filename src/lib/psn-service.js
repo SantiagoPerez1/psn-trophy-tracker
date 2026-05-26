@@ -45,7 +45,7 @@ const MOCK_GAMES = [
     npCommunicationId: "NPWR28437_00",
     trophyGroupId: "all",
     progress: 72,
-    conceptIconUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80", // Respaldo estético
+    conceptIconUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80",
     platform: "PS5",
     earnedTrophies: { bronze: 22, silver: 8, gold: 2, platinum: 0 },
     definedTrophies: { bronze: 28, silver: 12, gold: 4, platinum: 1 }
@@ -154,7 +154,7 @@ export async function getGamesForUser(psnId) {
   // Si no está configurado NPSSO, devolvemos datos mock
   if (!process.env.PSN_NPSSO) {
     console.log(`[Modo Simulación] Devolviendo juegos mock para el usuario: ${psnId}`);
-    return MOCK_GAMES;
+    return { games: MOCK_GAMES, isMock: true };
   }
 
   try {
@@ -162,7 +162,13 @@ export async function getGamesForUser(psnId) {
     
     // Buscar al usuario para obtener su accountId
     const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
-    const accountId = searchResponse.results?.[0]?.socialMetadata?.accountId;
+    
+    // Intentar buscar la coincidencia exacta de onlineId
+    const matchedUser = searchResponse.results?.find(
+      r => r.socialMetadata?.onlineId?.toLowerCase() === psnId.toLowerCase()
+    );
+    
+    const accountId = matchedUser?.socialMetadata?.accountId || searchResponse.results?.[0]?.socialMetadata?.accountId;
     
     if (!accountId) {
       throw new Error("USER_NOT_FOUND");
@@ -172,10 +178,10 @@ export async function getGamesForUser(psnId) {
     const titlesResponse = await getUserTitles(auth, accountId);
     
     if (!titlesResponse.trophyTitles) {
-      return [];
+      return { games: [], isMock: false };
     }
 
-    return titlesResponse.trophyTitles.map(title => ({
+    const games = titlesResponse.trophyTitles.map(title => ({
       titleName: title.trophyTitleName,
       npCommunicationId: title.npCommunicationId,
       trophyGroupId: "all",
@@ -185,10 +191,30 @@ export async function getGamesForUser(psnId) {
       earnedTrophies: title.earnedTrophies,
       definedTrophies: title.definedTrophies
     }));
+
+    return { games, isMock: false };
   } catch (error) {
-    console.error(`Error al obtener juegos reales de ${psnId}, usando fallback mock:`, error);
-    // Si falla por algún problema de API o expiración del bot, retornamos el Mock para no romper la experiencia
-    return MOCK_GAMES;
+    console.error(`Error al obtener juegos reales de ${psnId}:`, error);
+    
+    // Identificamos errores de privacidad u otros conocidos
+    let errorMessage = "UNKNOWN_ERROR";
+    const errStr = String(error).toLowerCase() + " " + String(error.message).toLowerCase();
+    
+    if (error.message === "USER_NOT_FOUND") {
+      errorMessage = "USER_NOT_FOUND";
+    } else if (
+      error.status === 403 || 
+      errStr.includes("403") || 
+      errStr.includes("forbidden") || 
+      errStr.includes("private") || 
+      errStr.includes("not allowed")
+    ) {
+      errorMessage = "PROFILE_PRIVATE";
+    } else if (error.message === "PSN_AUTH_FAILED") {
+      errorMessage = "PSN_AUTH_FAILED";
+    }
+    
+    throw new Error(errorMessage);
   }
 }
 
@@ -206,7 +232,10 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
     
     // Obtener accountId del usuario
     const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
-    const accountId = searchResponse.results?.[0]?.socialMetadata?.accountId;
+    const matchedUser = searchResponse.results?.find(
+      r => r.socialMetadata?.onlineId?.toLowerCase() === psnId.toLowerCase()
+    );
+    const accountId = matchedUser?.socialMetadata?.accountId || searchResponse.results?.[0]?.socialMetadata?.accountId;
     
     if (!accountId) {
       throw new Error("USER_NOT_FOUND");
@@ -229,7 +258,7 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
     const pendingTrophies = allTrophiesResponse.trophies
       .filter(t => {
         const isEarned = earnedMap.get(t.trophyId) ?? false;
-        return !isEarned; // Filtramos para dejar solo los pendientes
+        return !isEarned;
       })
       .map(t => ({
         trophyId: t.trophyId,
@@ -242,7 +271,21 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId) {
 
     return pendingTrophies;
   } catch (error) {
-    console.error(`Error al obtener trofeos reales para ${npCommunicationId}, usando fallback mock:`, error);
-    return MOCK_TROPHIES[npCommunicationId] || [];
+    console.error(`Error al obtener trofeos reales para ${npCommunicationId}:`, error);
+    
+    let errorMessage = "UNKNOWN_ERROR";
+    const errStr = String(error).toLowerCase() + " " + String(error.message).toLowerCase();
+    
+    if (
+      error.status === 403 || 
+      errStr.includes("403") || 
+      errStr.includes("forbidden") || 
+      errStr.includes("private") || 
+      errStr.includes("not allowed")
+    ) {
+      errorMessage = "PROFILE_PRIVATE";
+    }
+    
+    throw new Error(errorMessage);
   }
 }

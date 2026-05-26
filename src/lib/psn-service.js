@@ -266,6 +266,16 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
     // Obtener trofeos conseguidos por el usuario (aquí se incluyen datos de progreso de trofeos de PS5)
     const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all", { npServiceName });
 
+    // 1. Mapear los targets (objetivos totales) de los trofeos desde la definición global del juego
+    const targetMap = new Map();
+    if (allTrophiesResponse.trophies) {
+      allTrophiesResponse.trophies.forEach(t => {
+        if (t.trophyProgressTargetValue !== undefined) {
+          targetMap.set(t.trophyId, parseInt(t.trophyProgressTargetValue));
+        }
+      });
+    }
+
     // Mapear trofeos y detectar cuáles no han sido obtenidos
     const earnedMap = new Map();
     const progressMap = new Map();
@@ -275,12 +285,19 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
         earnedMap.set(t.trophyId, t.earned);
         
         // Si tiene datos de progreso de trofeo nativos (común en juegos de PS5)
-        if (t.progressRate !== undefined) {
-          progressMap.set(t.trophyId, {
-            rate: t.progressRate,
-            value: t.progressValue || 0,
-            target: t.progressTargetValue || 0
-          });
+        // t.progress en psn-api contiene el valor de progreso actual en formato string (ej: "4")
+        // t.progressRate contiene la tasa de progreso de 0 a 100 (ej: 80)
+        if (t.progressRate !== undefined || t.progress !== undefined) {
+          const target = targetMap.get(t.trophyId) || 0;
+          const value = t.progress ? parseInt(t.progress) : 0;
+          
+          if (target > 0) {
+            progressMap.set(t.trophyId, {
+              rate: t.progressRate ?? Math.round((value / target) * 100),
+              value: value,
+              target: target
+            });
+          }
         }
       });
     }

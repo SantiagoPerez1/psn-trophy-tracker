@@ -298,3 +298,151 @@ No agregues comentarios ni rodeos de texto, responde únicamente con el objeto J
     source: "fallback"
   };
 }
+
+/**
+ * Obtiene la ficha técnica del platino (dificultad, tiempo, partidas), el estado de servidores y clasifica trofeos problemáticos (perdibles o con bugs)
+ */
+export async function fetchGameTechnicalDetails(gameName, trophiesList = []) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenerativeAI(apiKey);
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const listText = trophiesList.map(t => `- [${t.trophyId}] ${t.trophyName}: ${t.trophyDetail}`).join("\n");
+
+      const prompt = `
+Eres un analista experto de guías de trofeos de PlayStation. Proporciona la ficha técnica y de servidores para el juego "${gameName}" y analiza cuáles de los siguientes trofeos pendientes son problemáticos (perdibles o con bugs).
+
+Lista de trofeos:
+${listText}
+
+Instrucciones:
+1. Determina el nivel de dificultad oficial/comunidad para conseguir el platino en una escala del 1 al 10 (ej. 4) y escribe una breve etiqueta de dificultad (ej. "Moderado").
+2. Estima el tiempo promedio en horas requerido para conseguir el platino (ej. "35-50 horas").
+3. Especifica el número mínimo de partidas requeridas (ej. "1 partida + limpieza").
+4. Analiza si el juego cuenta con servidores multijugador online activos, cerrados, o si no tiene multijugador. Si los servidores necesarios para algún trofeo de la lista están CERRADOS y por ende el Platino es imposible, especifica en status "closed". Si están abiertos o no tiene multijugador, pon "open". Escribe una descripción breve (ej. "Operativo", "No requiere online", o "Servidores cerrados - Platino imposible").
+5. De la lista de trofeos provista, identifica cuáles son "perdibles" (missable - que no se pueden conseguir al avanzar la historia y requieren otra partida) o "glitchados" (buggy - que a veces no saltan debido a fallos). Para cada trofeo problemático identificado, proporciona su trophyId (número), el tipo ("missable" o "glitched") y una razón ultra breve de 1 frase del por qué.
+6. Responde ÚNICAMENTE con un objeto JSON válido con la siguiente estructura, sin comentarios markdown ni introducciones:
+{
+  "difficulty": {
+    "rating": 5,
+    "label": "Moderada"
+  },
+  "estimatedHours": "40-50 horas",
+  "minPlaythroughs": "1 partida + limpieza",
+  "servers": {
+    "status": "open",
+    "description": "Operativo / Sin trofeos online"
+  },
+  "alerts": [
+    {
+      "trophyId": 2,
+      "type": "missable",
+      "reason": "Se pierde si no recoges el coleccionable antes de derrotar al jefe del Capítulo 4."
+    }
+  ]
+}
+`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      
+      const cleanJsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsedData = JSON.parse(cleanJsonText);
+      if (parsedData) {
+        return {
+          details: parsedData,
+          source: "gemini-ai"
+        };
+      }
+    } catch (error) {
+      console.error("Error al obtener detalles técnicos del juego con Gemini, usando fallback:", error);
+    }
+  }
+
+  // Fallback local en JS
+  // Analizar palabras clave para estimar localmente
+  const alerts = [];
+  trophiesList.forEach(t => {
+    const nameLower = t.trophyName.toLowerCase();
+    const detailLower = t.trophyDetail.toLowerCase();
+    
+    if (
+      detailLower.includes("perdible") || detailLower.includes("perder") || 
+      detailLower.includes("missable") || detailLower.includes("checkpoint") ||
+      nameLower.includes("perdible") || nameLower.includes("perder")
+    ) {
+      alerts.push({
+        trophyId: t.trophyId,
+        type: "missable",
+        reason: "Este trofeo puede perderse si avanzas en la historia sin cumplir el objetivo secundario."
+      });
+    } else if (
+      detailLower.includes("bug") || detailLower.includes("glitch") || 
+      detailLower.includes("error") || detailLower.includes("fallo") ||
+      nameLower.includes("bug") || nameLower.includes("glitch")
+    ) {
+      alerts.push({
+        trophyId: t.trophyId,
+        type: "glitched",
+        reason: "Se han reportado fallos aleatorios en la obtención de este trofeo. Se aconseja guardar partida antes."
+      });
+    }
+  });
+
+  // Intentar dar datos lógicos según el nombre del juego
+  const gameLower = gameName.toLowerCase();
+  let rating = 4;
+  let label = "Moderada";
+  let hours = "30-40 horas";
+  let playthroughs = "1 partida";
+  let serverStatus = "open";
+  let serverDesc = "Sin trofeos multijugador requeridos";
+
+  if (gameLower.includes("elden") || gameLower.includes("souls") || gameLower.includes("sekiro") || gameLower.includes("bloodborne")) {
+    rating = 7;
+    label = "Difícil";
+    hours = "60-80 horas";
+    playthroughs = "1 partida (con respaldos) o 3 partidas";
+  } else if (gameLower.includes("spider-man") || gameLower.includes("spiderman")) {
+    rating = 3;
+    label = "Fácil";
+    hours = "25-30 horas";
+    playthroughs = "1 partida + limpieza";
+  } else if (gameLower.includes("god of war") || gameLower.includes("ragnarok")) {
+    rating = 4;
+    label = "Moderada";
+    hours = "40-50 horas";
+    playthroughs = "1 partida";
+  } else if (gameLower.includes("dead island") || gameLower.includes("zombie")) {
+    rating = 4;
+    label = "Moderada";
+    hours = "35-45 horas";
+    playthroughs = "1 partida + cooperativo";
+  }
+
+  // Si hay algún trofeo con palabra "online" o "multijugador", indicar online operativo
+  const hasOnline = trophiesList.some(t => {
+    const txt = (t.trophyName + " " + t.trophyDetail).toLowerCase();
+    return txt.includes("online") || txt.includes("multijugador") || txt.includes("cooperativo") || txt.includes("coop");
+  });
+  if (hasOnline) {
+    serverDesc = "Servidores operativos / Requiere suscripción PS Plus";
+  }
+
+  return {
+    details: {
+      difficulty: { rating, label },
+      estimatedHours: hours,
+      minPlaythroughs: playthroughs,
+      servers: {
+        status: serverStatus,
+        description: serverDesc
+      },
+      alerts
+    },
+    source: "fallback"
+  };
+}

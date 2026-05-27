@@ -54,6 +54,17 @@ export default function Home() {
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [activityError, setActivityError] = useState("");
 
+  // Estados para Ficha Técnica e IA de Juego
+  const [gameSpecs, setGameSpecs] = useState(null);
+  const [isLoadingSpecs, setIsLoadingSpecs] = useState(false);
+
+  // Estados para el Versus Mode (Comparador de Perfiles)
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [versusUser2Input, setVersusUser2Input] = useState("");
+  const [isLoadingCompare, setIsLoadingCompare] = useState(false);
+  const [compareData, setCompareData] = useState(null);
+  const [compareError, setCompareError] = useState("");
+
 
 
   // Cargar el historial desde localStorage al montar la página
@@ -198,6 +209,50 @@ export default function Home() {
     triggerSearchForUser(usernameInput.trim());
   };
 
+  const fetchSpecsAndAlerts = async (gameName, trophiesList) => {
+    setIsLoadingSpecs(true);
+    setGameSpecs(null);
+    try {
+      const res = await fetch("/api/game-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameName, trophies: trophiesList })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGameSpecs(data.details);
+      }
+    } catch (err) {
+      console.error("Error al obtener especificaciones del platino:", err);
+    } finally {
+      setIsLoadingSpecs(false);
+    }
+  };
+
+  const handleCompareProfiles = async (e) => {
+    if (e) e.preventDefault();
+    if (!versusUser2Input.trim()) return;
+    setIsLoadingCompare(true);
+    setCompareError("");
+    setCompareData(null);
+    try {
+      const res = await fetch(
+        `/api/compare?user1=${encodeURIComponent(activeUsername)}&user2=${encodeURIComponent(versusUser2Input.trim())}`
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setCompareData(data);
+      } else {
+        setCompareError(data.error || "Ocurrió un error al comparar los perfiles.");
+      }
+    } catch (err) {
+      console.error(err);
+      setCompareError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+    } finally {
+      setIsLoadingCompare(false);
+    }
+  };
+
   const handleSelectGame = async (game) => {
     // Si hacemos clic en el juego ya seleccionado, lo colapsamos
     if (selectedGame?.npCommunicationId === game.npCommunicationId) {
@@ -207,6 +262,7 @@ export default function Home() {
       setCurrentVideo(null);
       setTrophyGuide("");
       setGuideSource("");
+      setGameSpecs(null);
       return;
     }
 
@@ -216,6 +272,7 @@ export default function Home() {
     setCurrentVideo(null);
     setTrophyGuide("");
     setGuideSource("");
+    setGameSpecs(null);
     setError("");
 
     // Auto-scroll suave hacia la tarjeta de juego que se va a expandir
@@ -234,6 +291,10 @@ export default function Home() {
 
       if (res.ok) {
         setTrophies(data.trophies || []);
+        
+        // Obtener detalles técnicos de forma paralela
+        fetchSpecsAndAlerts(game.titleName, data.trophies || []);
+
         // Seleccionar automáticamente el primer trofeo si hay
         if (data.trophies && data.trophies.length > 0) {
           handleSelectTrophy(data.trophies[0], game);
@@ -571,27 +632,41 @@ export default function Home() {
       {!isCompanionMode && !isLoadingGames && hunterStats && (
         <section className="hunter-stats-section animate-fade-in delay-1">
           <div className="hunter-profile-card">
-            <div className="hunter-avatar-row">
-              <div className="hunter-avatar" style={{ position: 'relative', overflow: 'hidden' }}>
-                {userProfile?.avatarUrl ? (
-                  <img src={userProfile.avatarUrl} alt="Avatar" className="hunter-avatar-img" />
-                ) : (
-                  <span>{activeUsername ? activeUsername[0].toUpperCase() : "P"}</span>
-                )}
-              </div>
-              <div className="hunter-meta-info">
-                <div className="hunter-name-wrapper">
-                  <h3 className="hunter-name">{activeUsername}</h3>
-                  {userProfile?.isPlus && (
-                    <span className="ps-plus-badge" title="Suscripción PlayStation Plus Activa">
-                      <span className="ps-plus-icon">✚</span> PLUS
-                    </span>
+            <div className="hunter-card-header">
+              <div className="hunter-avatar-row">
+                <div className="hunter-avatar" style={{ position: 'relative', overflow: 'hidden' }}>
+                  {userProfile?.avatarUrl ? (
+                    <img src={userProfile.avatarUrl} alt="Avatar" className="hunter-avatar-img" />
+                  ) : (
+                    <span>{activeUsername ? activeUsername[0].toUpperCase() : "P"}</span>
                   )}
                 </div>
-                <div className="hunter-level-badge">
-                  <span className="star-icon">★</span> Nivel Cazador {hunterStats.hunterLevel}
+                <div className="hunter-meta-info">
+                  <div className="hunter-name-wrapper">
+                    <h3 className="hunter-name">{activeUsername}</h3>
+                    {userProfile?.isPlus && (
+                      <span className="ps-plus-badge" title="Suscripción PlayStation Plus Activa">
+                        <span className="ps-plus-icon">✚</span> PLUS
+                      </span>
+                    )}
+                  </div>
+                  <div className="hunter-level-badge">
+                    <span className="star-icon">★</span> Nivel Cazador {hunterStats.hunterLevel}
+                  </div>
                 </div>
               </div>
+
+              <button 
+                className="versus-toggle-btn animate-pulseGlow"
+                onClick={() => {
+                  setShowCompareModal(true);
+                  setCompareData(null);
+                  setCompareError("");
+                  setVersusUser2Input("");
+                }}
+              >
+                ⚔️ Versus (Comparar)
+              </button>
             </div>
             
             <div className="milestones-grid">
@@ -790,6 +865,69 @@ export default function Home() {
                       </div>
                     </div>
 
+                    {/* Barra de Especificaciones Técnicas y Servidores (IA) */}
+                    {!isCompanionMode && (
+                      <div className="game-specs-container">
+                        {isLoadingSpecs ? (
+                          <div className="specs-loading-wrapper animate-fade-in">
+                            <div className="ps-spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
+                            <span>Cargando datos técnicos del Platino...</span>
+                          </div>
+                        ) : gameSpecs ? (
+                          <div className="animate-fade-in">
+                            {/* Alerta crítica si el servidor está cerrado */}
+                            {gameSpecs.servers?.status === "closed" && (
+                              <div className="server-status-banner closed">
+                                <span className="icon">⚠️</span>
+                                <div className="text-content">
+                                  <strong>Servidores de juego CERRADOS:</strong>
+                                  <span> Algunos trofeos multijugador online son inalcanzables. ¡El Platino es IMPOSIBLE!</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="game-specs-bar">
+                              <div className="spec-item">
+                                <span className="spec-icon">🎮</span>
+                                <div className="spec-info">
+                                  <span className="spec-label">Dificultad</span>
+                                  <span className="spec-value">
+                                    {gameSpecs.difficulty?.rating}/10 ({gameSpecs.difficulty?.label})
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="spec-item">
+                                <span className="spec-icon">⏱️</span>
+                                <div className="spec-info">
+                                  <span className="spec-label">Tiempo estimado</span>
+                                  <span className="spec-value">{gameSpecs.estimatedHours}</span>
+                                </div>
+                              </div>
+
+                              <div className="spec-item">
+                                <span className="spec-icon">🔁</span>
+                                <div className="spec-info">
+                                  <span className="spec-label">Partidas mínimas</span>
+                                  <span className="spec-value">{gameSpecs.minPlaythroughs}</span>
+                                </div>
+                              </div>
+
+                              <div className="spec-item">
+                                <span className="spec-icon">🌐</span>
+                                <div className="spec-info">
+                                  <span className="spec-label">Servidores online</span>
+                                  <span className={`spec-value ${gameSpecs.servers?.status === "closed" ? "danger-text" : "success-text"}`}>
+                                    {gameSpecs.servers?.description}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
                     {/* Cuerpo de la Tarjeta Expandida */}
                     <div className="expanded-body">
                       {/* Columna Izquierda: Trofeos Pendientes */}
@@ -877,6 +1015,11 @@ export default function Home() {
                                         <span className={`trophy-activity-tag ${trophy.activityType}`}>
                                           {activityIcons[trophy.activityType] || "✨"} {activityLabels[trophy.activityType] || "Otros"}
                                         </span>
+                                        {gameSpecs?.alerts?.find(a => a.trophyId === trophy.trophyId) && (
+                                          <span className={`trophy-alert-badge ${gameSpecs.alerts.find(a => a.trophyId === trophy.trophyId).type}`}>
+                                            ⚠️ {gameSpecs.alerts.find(a => a.trophyId === trophy.trophyId).type === "missable" ? "Perdible" : "Bugueado"}
+                                          </span>
+                                        )}
                                         {trophy.progress && trophy.progress.target > 0 && (
                                           <span className="trophy-progress-badge">
                                             {trophy.progress.value} / {trophy.progress.target}
@@ -884,6 +1027,12 @@ export default function Home() {
                                         )}
                                       </div>
                                       <p className="trophy-desc">{trophy.trophyDetail}</p>
+                                      
+                                      {gameSpecs?.alerts?.find(a => a.trophyId === trophy.trophyId) && (
+                                        <p className={`trophy-alert-reason ${gameSpecs.alerts.find(a => a.trophyId === trophy.trophyId).type}`}>
+                                          <strong>Advertencia:</strong> {gameSpecs.alerts.find(a => a.trophyId === trophy.trophyId).reason}
+                                        </p>
+                                      )}
 
                                       {/* Doble Porcentaje de Rareza */}
                                       {trophy.trophyEarnedRate !== null && (
@@ -1328,6 +1477,189 @@ export default function Home() {
               <button className="close-btn-secondary" onClick={() => setShowRoadmapModal(false)}>
                 Entendido, ¡a cazar!
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal del Versus Mode (Comparador de Perfiles) */}
+      {showCompareModal && (
+        <div className="versus-modal-overlay animate-fade-in" onClick={() => setShowCompareModal(false)}>
+          <div className="versus-modal-content animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="versus-modal-header">
+              <h2>⚔️ Comparador de Perfiles (Versus)</h2>
+              <button className="close-modal-btn" onClick={() => setShowCompareModal(false)}>✕</button>
+            </div>
+            
+            <div className="versus-modal-body">
+              <form onSubmit={handleCompareProfiles} className="versus-search-form">
+                <div className="versus-input-wrapper">
+                  <span className="input-prefix">@</span>
+                  <input 
+                    type="text" 
+                    placeholder="Introduce el segundo PSN ID..." 
+                    value={versusUser2Input}
+                    onChange={(e) => setVersusUser2Input(e.target.value)}
+                    className="versus-input"
+                    disabled={isLoadingCompare}
+                  />
+                </div>
+                <button type="submit" className="versus-search-btn" disabled={isLoadingCompare || !versusUser2Input.trim()}>
+                  {isLoadingCompare ? "Comparando..." : "Comparar"}
+                </button>
+              </form>
+
+              {compareError && (
+                <div className="error-banner" style={{ marginTop: "1rem" }}>
+                  <span className="icon">⚠️</span>
+                  <span>{compareError}</span>
+                </div>
+              )}
+
+              {isLoadingCompare && (
+                <div className="loader-wrapper" style={{ padding: "4rem 0" }}>
+                  <div className="ps-spinner"></div>
+                  <p className="loader-text">Buscando perfil y cruzando estadísticas...</p>
+                </div>
+              )}
+
+              {!isLoadingCompare && compareData && (
+                <div className="versus-results animate-fade-in">
+                  
+                  {/* Cabecera Frente a Frente */}
+                  <div className="versus-players-header">
+                    <div className="player-column p1">
+                      <div className="player-avatar-wrapper">
+                        <div className="versus-avatar">
+                          {compareData.user1.profile.avatarUrl ? (
+                            <img src={compareData.user1.profile.avatarUrl} alt="Avatar 1" />
+                          ) : (
+                            <span>{compareData.user1.onlineId[0].toUpperCase()}</span>
+                          )}
+                        </div>
+                        {compareData.user1.profile.isPlus && <span className="versus-plus-badge">✚</span>}
+                      </div>
+                      <span className="versus-username">{compareData.user1.onlineId}</span>
+                      <span className="versus-games-count">{compareData.user1.gamesCount} juegos</span>
+                    </div>
+
+                    <div className="versus-vs-tag">VS</div>
+
+                    <div className="player-column p2">
+                      <div className="player-avatar-wrapper">
+                        <div className="versus-avatar">
+                          {compareData.user2.profile.avatarUrl ? (
+                            <img src={compareData.user2.profile.avatarUrl} alt="Avatar 2" />
+                          ) : (
+                            <span>{compareData.user2.onlineId[0].toUpperCase()}</span>
+                          )}
+                        </div>
+                        {compareData.user2.profile.isPlus && <span className="versus-plus-badge">✚</span>}
+                      </div>
+                      <span className="versus-username">{compareData.user2.onlineId}</span>
+                      <span className="versus-games-count">{compareData.user2.gamesCount} juegos</span>
+                    </div>
+                  </div>
+
+                  {/* Tabla de Estadísticas Comparadas */}
+                  <div className="versus-stats-table">
+                    <h3 className="versus-section-title">Estadísticas Comparadas</h3>
+                    
+                    {/* Fila: Nivel Cazador */}
+                    <div className="versus-stat-row">
+                      <span className="val p1">{compareData.user1.stats.hunterLevel}</span>
+                      <div className="stat-middle">
+                        <span className="label">Nivel de Cazador</span>
+                        <div className="versus-split-bar">
+                          <div className="bar-p1" style={{ width: `${Math.min(100, (compareData.user1.stats.hunterLevel / Math.max(1, compareData.user1.stats.hunterLevel + compareData.user2.stats.hunterLevel)) * 100)}%` }}></div>
+                          <div className="bar-p2" style={{ width: `${Math.min(100, (compareData.user2.stats.hunterLevel / Math.max(1, compareData.user1.stats.hunterLevel + compareData.user2.stats.hunterLevel)) * 100)}%` }}></div>
+                        </div>
+                      </div>
+                      <span className="val p2">{compareData.user2.stats.hunterLevel}</span>
+                    </div>
+
+                    {/* Fila: Platinos */}
+                    <div className="versus-stat-row">
+                      <span className="val p1 platinum-badge">🏆 {compareData.user1.stats.totalPlatinums}</span>
+                      <div className="stat-middle">
+                        <span className="label">Trofeos de Platino</span>
+                        <div className="versus-split-bar">
+                          <div className="bar-p1 platinum" style={{ width: `${(compareData.user1.stats.totalPlatinums / Math.max(1, compareData.user1.stats.totalPlatinums + compareData.user2.stats.totalPlatinums)) * 100}%` }}></div>
+                          <div className="bar-p2 platinum" style={{ width: `${(compareData.user2.stats.totalPlatinums / Math.max(1, compareData.user1.stats.totalPlatinums + compareData.user2.stats.totalPlatinums)) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <span className="val p2 platinum-badge">🏆 {compareData.user2.stats.totalPlatinums}</span>
+                    </div>
+
+                    {/* Fila: Completitud Promedio */}
+                    <div className="versus-stat-row">
+                      <span className="val p1">{compareData.user1.stats.averageProgress}%</span>
+                      <div className="stat-middle">
+                        <span className="label">Progreso Promedio</span>
+                        <div className="versus-split-bar">
+                          <div className="bar-p1" style={{ width: `${compareData.user1.stats.averageProgress}%` }}></div>
+                          <div className="bar-p2" style={{ width: `${compareData.user2.stats.averageProgress}%` }}></div>
+                        </div>
+                      </div>
+                      <span className="val p2">{compareData.user2.stats.averageProgress}%</span>
+                    </div>
+
+                    {/* Fila: Total Ganados */}
+                    <div className="versus-stat-row">
+                      <span className="val p1">{compareData.user1.stats.totalEarned}</span>
+                      <div className="stat-middle">
+                        <span className="label">Total Trofeos Ganados</span>
+                        <div className="versus-split-bar">
+                          <div className="bar-p1" style={{ width: `${(compareData.user1.stats.totalEarned / Math.max(1, compareData.user1.stats.totalEarned + compareData.user2.stats.totalEarned)) * 100}%` }}></div>
+                          <div className="bar-p2" style={{ width: `${(compareData.user2.stats.totalEarned / Math.max(1, compareData.user1.stats.totalEarned + compareData.user2.stats.totalEarned)) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <span className="val p2">{compareData.user2.stats.totalEarned}</span>
+                    </div>
+                  </div>
+
+                  {/* Juegos en Común */}
+                  <div className="versus-common-games">
+                    <h3 className="versus-section-title">Juegos en Común ({compareData.commonGames.length})</h3>
+                    {compareData.commonGames.length === 0 ? (
+                      <p className="no-common-games">No comparten ningún juego en sus perfiles públicos.</p>
+                    ) : (
+                      <div className="common-games-list">
+                        {compareData.commonGames.map((game, idx) => (
+                          <div key={idx} className="common-game-row">
+                            <div className="game-info">
+                              <img 
+                                src={game.conceptIconUrl || "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80"} 
+                                alt={game.titleName} 
+                                className="game-icon" 
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
+                                }}
+                              />
+                              <span className="game-title">{game.titleName}</span>
+                            </div>
+                            <div className="progress-comparison">
+                              <div className="p1-prog">
+                                <span className="prog-val">{game.progress1}%</span>
+                                {game.platinums1 > 0 && <span className="plat-icon">🏆</span>}
+                              </div>
+                              <div className="progress-slider-bg">
+                                <div className="bar p1" style={{ width: `${game.progress1}%` }}></div>
+                                <div className="bar p2" style={{ width: `${game.progress2}%` }}></div>
+                              </div>
+                              <div className="p2-prog">
+                                {game.platinums2 > 0 && <span className="plat-icon">🏆</span>}
+                                <span className="prog-val">{game.progress2}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

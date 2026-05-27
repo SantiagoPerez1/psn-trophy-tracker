@@ -265,11 +265,17 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
     const isPS5 = platform?.toUpperCase().includes("PS5");
     const npServiceName = isPS5 ? "trophy2" : "trophy";
 
-    // Obtener todos los trofeos del juego
-    const allTrophiesResponse = await getTitleTrophies(auth, npCommunicationId, "all", { npServiceName });
+    // Obtener todos los trofeos del juego con localización en español
+    const allTrophiesResponse = await getTitleTrophies(auth, npCommunicationId, "all", { 
+      npServiceName,
+      headerOverrides: { "Accept-Language": "es-ES,es;q=0.9" }
+    });
     
     // Obtener trofeos conseguidos por el usuario (aquí se incluyen datos de progreso de trofeos de PS5)
-    const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all", { npServiceName });
+    const earnedTrophiesResponse = await getUserTrophiesEarnedForTitle(auth, accountId, npCommunicationId, "all", { 
+      npServiceName,
+      headerOverrides: { "Accept-Language": "es-ES,es;q=0.9" }
+    });
 
     // 1. Mapear los targets (objetivos totales) de los trofeos desde la definición global del juego
     const targetMap = new Map();
@@ -310,7 +316,10 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
     // Obtener los grupos de trofeos para saber el nombre de cada grupo (juego base y DLCs)
     const groupNameMap = new Map();
     try {
-      const trophyGroupsResponse = await getTitleTrophyGroups(auth, npCommunicationId, { npServiceName });
+      const trophyGroupsResponse = await getTitleTrophyGroups(auth, npCommunicationId, { 
+        npServiceName,
+        headerOverrides: { "Accept-Language": "es-ES,es;q=0.9" }
+      });
       if (trophyGroupsResponse?.trophyGroups) {
         trophyGroupsResponse.trophyGroups.forEach(g => {
           // El grupo "default" representa el Juego Base
@@ -368,6 +377,17 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
 export function classifyTrophy(name, detail) {
   const nameLower = (name || "").toLowerCase();
   const detailLower = (detail || "").toLowerCase();
+
+  // 0. Caso especial: Platino
+  if (
+    nameLower.includes("platinum") || nameLower.includes("platino") ||
+    detailLower.includes("collect every") || detailLower.includes("all other trophies") ||
+    detailLower.includes("obtain all trophies") || detailLower.includes("consigue todos los trofeos") ||
+    detailLower.includes("conseguir todos los trofeos") || detailLower.includes("todos los demás trofeos") ||
+    detailLower.includes("desbloquea todos los trofeos")
+  ) {
+    return "other";
+  }
 
   // 1. Online / Multijugador
   if (

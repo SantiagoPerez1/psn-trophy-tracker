@@ -51,6 +51,14 @@ Instrucciones:
   let categoryAdvice = "";
   
   if (
+    nameLower.includes("platinum") || nameLower.includes("platino") ||
+    detailLower.includes("collect every") || detailLower.includes("all other trophies") ||
+    detailLower.includes("obtain all trophies") || detailLower.includes("consigue todos los trofeos") ||
+    detailLower.includes("conseguir todos los trofeos") || detailLower.includes("todos los demás trofeos") ||
+    detailLower.includes("desbloquea todos los trofeos")
+  ) {
+    categoryAdvice = "¡Este es el trofeo de Platino del juego! Se desbloqueará de forma automática una vez que consigas todos los demás trofeos de la lista del juego base. ¡Felicitaciones por completar el juego!";
+  } else if (
     detailLower.includes("defeat") || detailLower.includes("kill") || detailLower.includes("derrota") || 
     detailLower.includes("vence") || detailLower.includes("boss") || detailLower.includes("jefe") || 
     detailLower.includes("slay") || nameLower.includes("defeat") || nameLower.includes("slayer")
@@ -248,36 +256,40 @@ No agregues comentarios ni rodeos de texto, responde únicamente con el objeto J
   let currentStep = 1;
 
   if (historyTrophies.length > 0) {
+    const stepNum = currentStep++;
     steps.push({
-      stepNumber: currentStep++,
-      title: "Fase 1: Misiones de Historia y Campaña",
+      stepNumber: stepNum,
+      title: `Fase ${stepNum}: Misiones de Historia y Campaña`,
       description: "Enfócate en completar las misiones principales del juego. Estos trofeos se desbloquearán de forma natural a medida que avances y disfrutes de la narrativa.",
       trophies: historyTrophies.map(t => t.trophyName)
     });
   }
 
   if (combatTrophies.length > 0) {
+    const stepNum = currentStep++;
     steps.push({
-      stepNumber: currentStep++,
-      title: "Fase 2: Retos de Combate, Habilidades y Progreso",
+      stepNumber: stepNum,
+      title: `Fase ${stepNum}: Retos de Combate, Habilidades y Progreso`,
       description: "Dedícate a subir de nivel a tu personaje, comprar mejoras y realizar desafíos de combate específicos (por ejemplo, derrotar jefes opcionales o conseguir cierto número de bajas con un arma).",
       trophies: combatTrophies.map(t => t.trophyName)
     });
   }
 
   if (collectTrophies.length > 0) {
+    const stepNum = currentStep++;
     steps.push({
-      stepNumber: currentStep++,
-      title: "Fase 3: Búsqueda de Coleccionables y Secretos",
+      stepNumber: stepNum,
+      title: `Fase ${stepNum}: Búsqueda de Coleccionables y Secretos`,
       description: "Utiliza las videoguías interactivas para localizar todos los cofres, registros, cofres cerrados u objetos ocultos por el mapa. Se aconseja hacerlo tras completar la historia cuando tienes libre exploración.",
       trophies: collectTrophies.map(t => t.trophyName)
     });
   }
 
   if (otherTrophies.length > 0 || steps.length === 0) {
+    const stepNum = currentStep++;
     steps.push({
-      stepNumber: currentStep++,
-      title: "Fase Final: Multijugador y Limpieza General",
+      stepNumber: stepNum,
+      title: `Fase ${stepNum}: Multijugador y Limpieza General`,
       description: "Completa los desafíos cooperativos/online pendientes y limpia cualquier trofeo misceláneo que se te haya escapado en las fases anteriores para desbloquear finalmente el trofeo de Platino.",
       trophies: otherTrophies.length > 0 ? otherTrophies.map(t => t.trophyName) : pendingTrophies.map(t => t.trophyName)
     });

@@ -1920,13 +1920,23 @@ html, body {
     padding: 1rem 0.5rem 3rem 0.5rem !important;
   }
 
+  /* Forzar a que la grilla de juegos no use anchos mínimos fijos de columnas */
+  .games-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   /* Tarjeta expandida compacta para evitar el desborde horizontal */
   .game-card.expanded {
     padding: 1rem 0.75rem !important;
     gap: 1rem !important;
     border-radius: 16px !important;
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   /* Envolver y colapsar la barra de acciones */
@@ -1937,6 +1947,7 @@ html, body {
     width: 100% !important;
     margin-bottom: 1rem !important;
     padding-bottom: 0.5rem !important;
+    box-sizing: border-box !important;
   }
 
   .game-actions-bar .action-btn, 
@@ -1960,6 +1971,8 @@ html, body {
     text-align: center !important;
     gap: 1rem !important;
     padding-bottom: 1rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .expanded-cover-wrapper {
@@ -1969,11 +1982,14 @@ html, body {
 
   .expanded-game-info {
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .expanded-game-info .progress-section {
     max-width: 100% !important;
     margin: 0 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .expanded-game-info .progress-header {
@@ -1984,13 +2000,69 @@ html, body {
     justify-content: center !important;
     flex-wrap: wrap !important;
     gap: 0.4rem 0.75rem !important;
+    width: 100% !important;
   }
 
-  /* Tarjeta de trofeo compacta en móvil */
+  /* Contenedores de la lista de trofeos */
+  .expanded-trophies-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .trophies-scroll-container {
+    max-height: 400px !important; /* Ajustar altura para que se vea el video debajo */
+    padding-right: 0.25rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Tarjeta de trofeo compacta y 100% fluida en móvil */
   .trophy-card {
     padding: 0.85rem !important;
     gap: 0.75rem !important;
     border-radius: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+  }
+
+  .trophy-details {
+    min-width: 0 !important; /* CLAVE: permite flexbox encogerse sin desbordar */
+    width: 100% !important;
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .trophy-name-row {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .trophy-name {
+    font-size: 0.92rem !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+  }
+
+  .trophy-tag, .trophy-activity-tag, .trophy-progress-badge {
+    font-size: 0.6rem !important;
+    padding: 0.08rem 0.3rem !important;
+  }
+
+  .trophy-desc {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+    margin-top: 0.15rem !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    width: 100% !important;
   }
 
   .trophy-icon-wrapper {
@@ -2004,62 +2076,48 @@ html, body {
     height: 26px !important;
   }
 
-  .trophy-name {
-    font-size: 0.92rem !important;
-    line-height: 1.2 !important;
-  }
-
-  .trophy-tag, .trophy-activity-tag, .trophy-progress-badge {
-    font-size: 0.6rem !important;
-    padding: 0.08rem 0.3rem !important;
-  }
-
-  .trophy-desc {
-    font-size: 0.78rem !important;
-    line-height: 1.35 !important;
-    margin-top: 0.15rem !important;
-  }
-
   /* Doble Porcentaje */
   .trophy-rarity-row {
     margin-top: 0.4rem !important;
     gap: 0.5rem !important;
     flex-wrap: wrap !important;
+    width: 100% !important;
   }
 
   .rarity-item {
     font-size: 0.65rem !important;
   }
 
-  /* Contenedores de scroll de trofeos */
-  .trophies-scroll-container {
-    max-height: 400px !important; /* Ajustar altura para que se vea el video debajo */
-    padding-right: 0.25rem !important;
-  }
-
   /* Sección de video/reproductor en móvil */
   .expanded-video-panel {
     margin-top: 1rem !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .video-container {
     margin-bottom: 0.75rem !important;
+    width: 100% !important;
   }
 
   .video-desc {
     font-size: 0.78rem !important;
     line-height: 1.35 !important;
+    word-break: break-word !important;
   }
 
   /* Asistente Chat panel en móvil */
   .assistant-chat-panel {
     height: 350px !important; /* Altura más compacta para móvil */
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .chat-messages-container {
     padding: 0.75rem !important;
     gap: 0.6rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .message-bubble {
@@ -2069,6 +2127,8 @@ html, body {
 
   .chat-input-form {
     padding: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .chat-input {

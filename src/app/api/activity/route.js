@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGamesForUser } from "@/lib/psn-service";
+import { getPlayedGamesForUser } from "@/lib/psn-service";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -13,32 +13,31 @@ export async function GET(request) {
   }
 
   try {
-    const { games, isMock, userProfile } = await getGamesForUser(username);
+    const { playedGames, isMock } = await getPlayedGamesForUser(username);
     return NextResponse.json({ 
-      games, 
+      playedGames, 
       isSimulation: isMock,
-      isLiveConnected: !!process.env.PSN_NPSSO,
-      userProfile
+      isLiveConnected: !!process.env.PSN_NPSSO
     });
   } catch (error) {
-    console.error(`Error en API /api/games para ${username}:`, error);
+    console.error(`Error en API /api/activity para ${username}:`, error);
     
-    let userFriendlyError = "Error al obtener datos de PlayStation Network.";
+    let userFriendlyError = "Error al obtener historial de actividad de PlayStation Network.";
     
     if (error.message === "USER_NOT_FOUND") {
       userFriendlyError = `El usuario "${username}" no existe en PlayStation Network. Por favor, verifica el nombre.`;
     } else if (error.message === "PROFILE_PRIVATE") {
-      userFriendlyError = `El perfil de trofeos de "${username}" es privado. Debe cambiarse a "Público" en la configuración de privacidad de tu cuenta de PlayStation.`;
+      userFriendlyError = `El historial de juegos jugados de "${username}" es privado. Debe cambiarse a "Público" en la configuración de privacidad de tu cuenta de PlayStation para poder ver las horas de juego.`;
     } else if (error.message === "PSN_AUTH_FAILED") {
       userFriendlyError = "Error de autenticación con el servidor. El administrador de la web debe renovar el token NPSSO.";
     } else {
-      userFriendlyError = `No se pudieron cargar los datos de PlayStation Network: ${error.message}`;
+      userFriendlyError = `No se pudieron cargar los datos de actividad de PlayStation Network: ${error.message}`;
     }
     
     return NextResponse.json(
       { 
         error: userFriendlyError, 
-        games: [], 
+        playedGames: [], 
         isSimulation: false,
         isLiveConnected: !!process.env.PSN_NPSSO
       },

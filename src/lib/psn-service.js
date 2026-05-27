@@ -5,7 +5,9 @@ import {
   getUserTrophiesEarnedForTitle,
   makeUniversalSearch,
   getTitleTrophies,
-  getTitleTrophyGroups
+  getTitleTrophyGroups,
+  getProfileFromAccountId,
+  getUserPlayedGames
 } from "psn-api";
 
 // Caché para evitar re-autenticar en cada petición (el token dura 1 hora)
@@ -163,7 +165,15 @@ export async function getGamesForUser(psnId) {
   // Si no está configurado NPSSO, devolvemos datos mock
   if (!process.env.PSN_NPSSO) {
     console.log(`[Modo Simulación] Devolviendo juegos mock para el usuario: ${psnId}`);
-    return { games: MOCK_GAMES, isMock: true };
+    return { 
+      games: MOCK_GAMES, 
+      isMock: true,
+      userProfile: {
+        onlineId: psnId,
+        avatarUrl: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&q=80",
+        isPlus: true
+      }
+    };
   }
 
   try {
@@ -186,11 +196,31 @@ export async function getGamesForUser(psnId) {
       throw new Error("USER_NOT_FOUND");
     }
 
+    // Obtener el perfil detallado del usuario (avatar, PS Plus, etc.)
+    let userProfile = {
+      onlineId: psnId,
+      avatarUrl: null,
+      isPlus: false
+    };
+
+    try {
+      const profileResponse = await getProfileFromAccountId(auth, accountId);
+      if (profileResponse) {
+        const avatarObj = profileResponse.avatarUrls?.find(
+          a => a.size === "xl" || a.size === "l"
+        ) || profileResponse.avatarUrls?.[0];
+        userProfile.avatarUrl = avatarObj?.avatarUrl || null;
+        userProfile.isPlus = profileResponse.isPlus || profileResponse.plus || false;
+      }
+    } catch (profileErr) {
+      console.warn(`No se pudo obtener el perfil detallado del usuario de PSN:`, profileErr);
+    }
+
     // Obtener los juegos del usuario
     const titlesResponse = await getUserTitles(auth, accountId);
     
     if (!titlesResponse.trophyTitles) {
-      return { games: [], isMock: false };
+      return { games: [], isMock: false, userProfile };
     }
 
     const games = titlesResponse.trophyTitles.map(title => ({
@@ -204,7 +234,7 @@ export async function getGamesForUser(psnId) {
       definedTrophies: title.definedTrophies
     }));
 
-    return { games, isMock: false };
+    return { games, isMock: false, userProfile };
   } catch (error) {
     console.error(`Error al obtener juegos reales de ${psnId}:`, error);
     
@@ -471,5 +501,104 @@ export function classifyTrophy(name, detail) {
   }
 
   return "other";
+}
+
+/**
+ * Obtiene el historial de juegos jugados recientemente de un usuario y sus horas de juego
+ */
+export async function getPlayedGamesForUser(psnId) {
+  // Si no está configurado NPSSO, devolvemos datos mock
+  if (!process.env.PSN_NPSSO) {
+    console.log(`[Modo Simulación] Devolviendo historial de actividad mock para: ${psnId}`);
+    return {
+      playedGames: [
+        {
+          titleName: "God of War Ragnarök",
+          conceptIconUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80",
+          platform: "PS5",
+          playDuration: "PT124H30M15S", // 124 horas
+          playCount: 42,
+          lastPlayedDateTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          titleName: "Marvel's Spider-Man 2",
+          conceptIconUrl: "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=400&q=80",
+          platform: "PS5",
+          playDuration: "PT45H12M", // 45 horas
+          playCount: 18,
+          lastPlayedDateTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          titleName: "Elden Ring",
+          conceptIconUrl: "https://images.unsplash.com/photo-1655821889508-30113f8d38be?w=400&q=80",
+          platform: "PS5/PS4",
+          playDuration: "PT210H45S", // 210 horas
+          playCount: 95,
+          lastPlayedDateTime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          titleName: "Dead Island 2",
+          conceptIconUrl: "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=400&q=80",
+          platform: "PS5",
+          playDuration: "PT35H", // 35 horas
+          playCount: 15,
+          lastPlayedDateTime: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ],
+      isMock: true
+    };
+  }
+
+  try {
+    const auth = await getAuth();
+    
+    // Obtener accountId del usuario
+    const searchResponse = await makeUniversalSearch(auth, psnId, "SocialAllAccounts");
+    const searchResults = searchResponse.domainResponses?.[0]?.results || [];
+    const matchedUser = searchResults.find(
+      r => r.socialMetadata?.onlineId?.toLowerCase() === psnId.toLowerCase()
+    );
+    const accountId = matchedUser?.socialMetadata?.accountId || searchResults[0]?.socialMetadata?.accountId;
+    
+    if (!accountId) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    // Obtener la lista de juegos jugados mediante psn-api
+    const playedGamesResponse = await getUserPlayedGames(auth, accountId);
+    
+    // Mapear la respuesta para el frontend
+    const playedGames = (playedGamesResponse.titles || []).map(game => ({
+      titleName: game.name || game.titleName,
+      conceptIconUrl: game.image?.url || game.conceptIconUrl,
+      platform: game.platform,
+      playDuration: game.playDuration, // ej: "PT124H"
+      playCount: game.playCount,
+      lastPlayedDateTime: game.lastPlayedDateTime
+    }));
+
+    return { playedGames, isMock: false };
+  } catch (error) {
+    console.error(`Error al obtener historial de juego real de ${psnId}:`, error);
+    
+    let errorMessage = "UNKNOWN_ERROR";
+    const errStr = String(error).toLowerCase() + " " + String(error.message).toLowerCase();
+    
+    if (error.message === "USER_NOT_FOUND") {
+      errorMessage = "USER_NOT_FOUND";
+    } else if (
+      error.status === 403 || 
+      errStr.includes("403") || 
+      errStr.includes("forbidden") || 
+      errStr.includes("private") || 
+      errStr.includes("not allowed")
+    ) {
+      errorMessage = "PROFILE_PRIVATE";
+    } else if (error.message === "PSN_AUTH_FAILED") {
+      errorMessage = "PSN_AUTH_FAILED";
+    }
+    
+    throw new Error(errorMessage);
+  }
 }
 

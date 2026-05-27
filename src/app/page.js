@@ -47,6 +47,13 @@ export default function Home() {
   // Modo Companion App
   const [isCompanionMode, setIsCompanionMode] = useState(false);
 
+  // Nuevos estados para perfil enriquecido y pestañas de actividad
+  const [userProfile, setUserProfile] = useState(null);
+  const [activeTab, setActiveTab] = useState("trophies");
+  const [activityGames, setActivityGames] = useState([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [activityError, setActivityError] = useState("");
+
 
 
   // Cargar el historial desde localStorage al montar la página
@@ -100,15 +107,88 @@ export default function Home() {
         setGames(data.games || []);
         setIsSimulation(data.isSimulation);
         setActiveUsername(username.trim());
+        setUserProfile(data.userProfile || null);
+        setActiveTab("trophies");
+        setActivityGames([]);
+        setActivityError("");
         saveToHistory(username.trim());
       } else {
         setError(data.error || "Ocurrió un error al buscar los juegos.");
+        setUserProfile(null);
       }
     } catch (err) {
       console.error(err);
       setError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+      setUserProfile(null);
     } finally {
       setIsLoadingGames(false);
+    }
+  };
+
+  const loadActivity = async (username) => {
+    if (activityGames.length > 0) return;
+    setIsLoadingActivity(true);
+    setActivityError("");
+    try {
+      const res = await fetch(`/api/activity?username=${encodeURIComponent(username)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setActivityGames(data.playedGames || []);
+      } else {
+        setActivityError(data.error || "Ocurrió un error al cargar el historial de actividad.");
+      }
+    } catch (err) {
+      console.error(err);
+      setActivityError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+
+  const formatPlayDuration = (durationStr) => {
+    if (!durationStr) return "Desconocido";
+    try {
+      const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (match) {
+        const hours = parseInt(match[1] || "0");
+        const minutes = parseInt(match[2] || "0");
+        
+        if (hours > 0) {
+          return `${hours} ${hours === 1 ? 'hora' : 'horas'}${minutes > 0 ? ` y ${minutes} min` : ''}`;
+        } else if (minutes > 0) {
+          return `${minutes} min`;
+        }
+        return "Menos de un minuto";
+      }
+    } catch (e) {
+      console.error("Error al formatear la duración:", e);
+    }
+    return durationStr;
+  };
+
+  const formatLastPlayed = (dateStr) => {
+    if (!dateStr) return "Nunca";
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return "Hoy mismo";
+      } else if (diffDays === 1) {
+        return "Ayer";
+      } else if (diffDays < 7) {
+        return `Hace ${diffDays} días`;
+      } else {
+        return date.toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
+      }
+    } catch (e) {
+      return dateStr;
     }
   };
 
@@ -492,11 +572,22 @@ export default function Home() {
         <section className="hunter-stats-section animate-fade-in delay-1">
           <div className="hunter-profile-card">
             <div className="hunter-avatar-row">
-              <div className="hunter-avatar">
-                <span>{activeUsername ? activeUsername[0].toUpperCase() : "P"}</span>
+              <div className="hunter-avatar" style={{ position: 'relative', overflow: 'hidden' }}>
+                {userProfile?.avatarUrl ? (
+                  <img src={userProfile.avatarUrl} alt="Avatar" className="hunter-avatar-img" />
+                ) : (
+                  <span>{activeUsername ? activeUsername[0].toUpperCase() : "P"}</span>
+                )}
               </div>
               <div className="hunter-meta-info">
-                <h3 className="hunter-name">{activeUsername}</h3>
+                <div className="hunter-name-wrapper">
+                  <h3 className="hunter-name">{activeUsername}</h3>
+                  {userProfile?.isPlus && (
+                    <span className="ps-plus-badge" title="Suscripción PlayStation Plus Activa">
+                      <span className="ps-plus-icon">✚</span> PLUS
+                    </span>
+                  )}
+                </div>
                 <div className="hunter-level-badge">
                   <span className="star-icon">★</span> Nivel Cazador {hunterStats.hunterLevel}
                 </div>
@@ -560,8 +651,29 @@ export default function Home() {
         </div>
       )}
 
-      {/* Resultados de Juegos */}
-      {!isLoadingGames && games.length > 0 && (
+      {/* Menú de Pestañas Principales - Oculto en modo Companion */}
+      {!isCompanionMode && !isLoadingGames && games.length > 0 && (
+        <div className="main-navigation-tabs animate-fade-in delay-2">
+          <button 
+            className={`main-tab-btn ${activeTab === "trophies" ? "active" : ""}`}
+            onClick={() => setActiveTab("trophies")}
+          >
+            🏆 Lista de Trofeos
+          </button>
+          <button 
+            className={`main-tab-btn ${activeTab === "activity" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("activity");
+              loadActivity(activeUsername);
+            }}
+          >
+            ⏱️ Historial de Actividad
+          </button>
+        </div>
+      )}
+
+      {/* Resultados de Juegos (Pestaña Trofeos) */}
+      {activeTab === "trophies" && !isLoadingGames && games.length > 0 && (
         <div className="animate-fade-in delay-2">
           {/* Header con controles de ordenación */}
           <div className="games-controls-header">
@@ -1043,6 +1155,104 @@ export default function Home() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Pestaña: Historial de Actividad */}
+      {activeTab === "activity" && !isLoadingGames && activeUsername && (
+        <section className="activity-section animate-fade-in">
+          {isLoadingActivity ? (
+            <div className="loader-wrapper" style={{ padding: "4rem 0" }}>
+              <div className="ps-spinner"></div>
+              <p className="loader-text">Cargando historial de juegos y horas jugadas...</p>
+            </div>
+          ) : activityError ? (
+            <div className="error-banner" style={{ marginTop: "1rem" }}>
+              <span className="icon">⚠️</span>
+              <p>{activityError}</p>
+            </div>
+          ) : activityGames.length === 0 ? (
+            <div className="empty-placeholder" style={{ marginTop: "1rem", padding: "3rem 1.5rem" }}>
+              <span className="empty-icon" style={{ fontSize: "3rem", color: "var(--text-muted)", marginBottom: "1rem" }}>🎮</span>
+              <p className="empty-text">Sin datos de actividad</p>
+              <p className="empty-subtext">No se encontraron juegos recientes en el perfil de este jugador o sus opciones de privacidad son privadas.</p>
+            </div>
+          ) : (
+            <div className="activity-container">
+              <div className="activity-stats-summary animate-fade-in">
+                <div className="act-summary-card">
+                  <span className="label">Tiempo Total Registrado</span>
+                  <span className="value">
+                    {(() => {
+                      let totalHrs = 0;
+                      activityGames.forEach(g => {
+                        if (g.playDuration) {
+                          const m = g.playDuration.match(/PT(?:(\d+)H)?/);
+                          if (m) totalHrs += parseInt(m[1] || "0");
+                        }
+                      });
+                      return `${totalHrs} horas`;
+                    })()}
+                  </span>
+                </div>
+                <div className="act-summary-card">
+                  <span className="label">Juegos Iniciados</span>
+                  <span className="value">{activityGames.length} títulos</span>
+                </div>
+              </div>
+
+              <div className="activity-list">
+                {activityGames.map((game, idx) => (
+                  <div 
+                    key={`${game.titleName}-${idx}`} 
+                    className="activity-game-card animate-fade-in"
+                    style={{ animationDelay: `${idx * 0.05}s` }}
+                  >
+                    <div className="activity-game-cover-wrapper">
+                      <img 
+                        src={game.conceptIconUrl || "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80"} 
+                        alt={game.titleName}
+                        className="activity-game-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://images.unsplash.com/photo-1595303526913-c7037797ebe7?w=150&q=80";
+                        }}
+                      />
+                    </div>
+                    <div className="activity-game-details">
+                      <div className="activity-game-title-row">
+                        <h4 className="activity-game-title">{game.titleName}</h4>
+                        <span className="activity-game-platform">{game.platform}</span>
+                      </div>
+                      <div className="activity-game-stats">
+                        <div className="act-stat-item">
+                          <span className="icon">⏱️</span>
+                          <div className="text-details">
+                            <span className="label">Tiempo jugado</span>
+                            <span className="val">{formatPlayDuration(game.playDuration)}</span>
+                          </div>
+                        </div>
+                        <div className="act-stat-item">
+                          <span className="icon">🔄</span>
+                          <div className="text-details">
+                            <span className="label">Veces iniciado</span>
+                            <span className="val">{game.playCount || 0} sesiones</span>
+                          </div>
+                        </div>
+                        <div className="act-stat-item">
+                          <span className="icon">📅</span>
+                          <div className="text-details">
+                            <span className="label">Última partida</span>
+                            <span className="val">{formatLastPlayed(game.lastPlayedDateTime)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       )}
 
       {/* Página Inicial Vacía (Antes de buscar) */}

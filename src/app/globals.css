@@ -1929,6 +1929,14 @@ html, body {
     box-sizing: border-box !important;
   }
 
+  /* Forzar grilla interna flexible en móvil para evitar desborde de columnas */
+  .expanded-body {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   /* Forzar a que la grilla de juegos no use anchos mínimos fijos de columnas */
   .games-grid {
     grid-template-columns: 1fr !important;
@@ -2016,6 +2024,7 @@ html, body {
   .expanded-trophies-list {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important; /* CLAVE */
     box-sizing: border-box !important;
   }
 
@@ -2024,6 +2033,7 @@ html, body {
     padding-right: 0.25rem !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important; /* CLAVE */
     box-sizing: border-box !important;
   }
 
@@ -2034,8 +2044,9 @@ html, body {
     border-radius: 12px !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important; /* CLAVE */
     box-sizing: border-box !important;
-    flex-shrink: 0 !important;
+    flex-shrink: 1 !important; /* Permitir encogerse */
     display: flex !important;
     flex-direction: row !important;
   }

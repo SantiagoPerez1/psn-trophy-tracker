@@ -1120,6 +1120,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Footer de diagnóstico de versión */}
+      {!isCompanionMode && (
+        <footer style={{ marginTop: "3rem", textAlign: "center", paddingBottom: "2rem", opacity: 0.4, fontSize: "0.72rem", color: "var(--text-muted)" }}>
+          <p>PSN Trophy Tracker v1.1.2 - Mobile Layout Fix Active</p>
+        </footer>
+      )}
     </div>
   );
 }

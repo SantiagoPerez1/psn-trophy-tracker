@@ -47,37 +47,7 @@ export default function Home() {
   // Modo Companion App
   const [isCompanionMode, setIsCompanionMode] = useState(false);
 
-  // Estado e Effect de diagnóstico responsivo en tiempo real
-  const [debugInfo, setDebugInfo] = useState("");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const checkLayout = () => {
-      const wWidth = window.innerWidth;
-      const elements = [
-        { selector: ".app-container", name: "container" },
-        { selector: ".game-card.expanded", name: "expanded" },
-        { selector: ".expanded-body", name: "body" },
-        { selector: ".expanded-trophies-list", name: "list" },
-        { selector: ".trophies-scroll-container", name: "scroll" },
-        { selector: ".trophy-card", name: "card" }
-      ];
-      let info = `Viewport: ${wWidth}px | `;
-      elements.forEach(el => {
-        const domEl = document.querySelector(el.selector);
-        if (domEl) {
-          const rect = domEl.getBoundingClientRect();
-          info += `${el.name}: ${Math.round(rect.width)}px${rect.width > wWidth ? " (⚠️)" : ""} | `;
-        }
-      });
-      setDebugInfo(info);
-    };
-    const timer = setTimeout(checkLayout, 1000);
-    window.addEventListener("resize", checkLayout);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("resize", checkLayout);
-    };
-  }, [selectedGame, trophies]);
+
 
   // Cargar el historial desde localStorage al montar la página
   useEffect(() => {
@@ -1156,8 +1126,7 @@ export default function Home() {
       {/* Footer de diagnóstico de versión */}
       {!isCompanionMode && (
         <footer style={{ marginTop: "3rem", textAlign: "center", paddingBottom: "2rem", opacity: 0.5, fontSize: "0.72rem", color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <p>PSN Trophy Tracker v1.1.2 - Mobile Layout Fix Active</p>
-          {debugInfo && <p style={{ fontSize: "0.65rem", color: "rgba(96, 165, 250, 0.8)" }}>{debugInfo}</p>}
+          <p>PSN Trophy Tracker v1.1.2</p>
         </footer>
       )}
     </div>

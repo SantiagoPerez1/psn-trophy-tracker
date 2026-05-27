@@ -1911,6 +1911,178 @@ html, body {
   height: 100% !important;
 }
 
+/* ==========================================================================
+   OPTIMIZACIÓN RESPONSIVA ADICIONAL PARA DISPOSITIVOS MÓVILES (PANTALLAS CHICAS)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Contenedor principal y espaciado general */
+  .app-container {
+    padding: 1rem 0.5rem 3rem 0.5rem !important;
+  }
+
+  /* Tarjeta expandida compacta para evitar el desborde horizontal */
+  .game-card.expanded {
+    padding: 1rem 0.75rem !important;
+    gap: 1rem !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Envolver y colapsar la barra de acciones */
+  .game-actions-bar {
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .game-actions-bar .action-btn, 
+  .game-actions-bar .close-expand-btn {
+    flex: 1 1 calc(50% - 0.25rem) !important; /* Dos en una fila */
+    justify-content: center !important;
+    padding: 0.45rem 0.6rem !important;
+    font-size: 0.72rem !important;
+    margin: 0 !important;
+  }
+  
+  /* El último botón (Cerrar Detalles) toma toda la fila inferior para balance */
+  .game-actions-bar .close-expand-btn {
+    flex: 1 1 100% !important;
+  }
+
+  /* Reordenar cabecera a vertical */
+  .expanded-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .expanded-cover-wrapper {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .expanded-game-info {
+    width: 100% !important;
+  }
+
+  .expanded-game-info .progress-section {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+
+  .expanded-game-info .progress-header {
+    justify-content: space-between !important;
+  }
+
+  .expanded-game-info .trophies-summary {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.4rem 0.75rem !important;
+  }
+
+  /* Tarjeta de trofeo compacta en móvil */
+  .trophy-card {
+    padding: 0.85rem !important;
+    gap: 0.75rem !important;
+    border-radius: 12px !important;
+  }
+
+  .trophy-icon-wrapper {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 8px !important;
+  }
+
+  .trophy-badge-icon {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .trophy-name {
+    font-size: 0.92rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .trophy-tag, .trophy-activity-tag, .trophy-progress-badge {
+    font-size: 0.6rem !important;
+    padding: 0.08rem 0.3rem !important;
+  }
+
+  .trophy-desc {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+    margin-top: 0.15rem !important;
+  }
+
+  /* Doble Porcentaje */
+  .trophy-rarity-row {
+    margin-top: 0.4rem !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .rarity-item {
+    font-size: 0.65rem !important;
+  }
+
+  /* Contenedores de scroll de trofeos */
+  .trophies-scroll-container {
+    max-height: 400px !important; /* Ajustar altura para que se vea el video debajo */
+    padding-right: 0.25rem !important;
+  }
+
+  /* Sección de video/reproductor en móvil */
+  .expanded-video-panel {
+    margin-top: 1rem !important;
+    width: 100% !important;
+  }
+
+  .video-container {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .video-desc {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Asistente Chat panel en móvil */
+  .assistant-chat-panel {
+    height: 350px !important; /* Altura más compacta para móvil */
+  }
+
+  .chat-messages-container {
+    padding: 0.75rem !important;
+    gap: 0.6rem !important;
+  }
+
+  .message-bubble {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .chat-input-form {
+    padding: 0.5rem !important;
+  }
+
+  .chat-input {
+    padding: 0.4rem 0.6rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  .chat-send-btn {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.72rem !important;
+  }
+}
+
+
 
 
 

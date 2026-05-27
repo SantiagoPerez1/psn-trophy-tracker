@@ -28,6 +28,7 @@ Instrucciones:
 1. Explica brevemente qué se debe hacer para conseguir el trofeo de forma clara y directa (máximo 3 frases).
 2. Agrega 2 o 3 consejos clave o advertencias rápidas (ej. si es perdible, qué dificultad requiere, o algún truco rápido) en viñetas.
 3. Usa un tono amigable, directo y profesional. Evita rodeos o introducciones largas.
+4. IMPORTANTE: NO uses formato de texto en negrita con asteriscos (como **texto**) en tu respuesta. Escribe en texto plano común sin decoraciones markdown.
 `;
 
       const result = await model.generateContent(prompt);
@@ -90,12 +91,12 @@ Instrucciones:
   ) {
     categoryAdvice = "Este es un trofeo acumulativo (requiere realizar una acción específica un número determinado de veces). Te recomendamos hacer un seguimiento del contador en la barra de progreso de la app (para juegos de PS5 que lo soporten) o en la sección de estadísticas o desafíos internos en el menú del juego.";
   } else {
-    categoryAdvice = `Para conseguir este trofeo, debes completar el objetivo oficial: *"${trophyDetail || "Ver detalles oficiales del trofeo."}"*. Te aconsejamos ver el video adjunto para replicar la ruta, mecánicas o el método de juego ilustrado por la guía.`;
+    categoryAdvice = `Para conseguir este trofeo, debes completar el objetivo oficial: "${trophyDetail || "Ver detalles oficiales del trofeo."}". Te aconsejamos ver el video adjunto para replicar la ruta, mecánicas o el método de juego ilustrado por la guía.`;
   }
 
-  let fallbackGuide = `**Guía rápida para "${trophyName}":**\n\n`;
-  fallbackGuide += `1. **Objetivo oficial:** ${trophyDetail || "Ver descripción en la tarjeta."}\n`;
-  fallbackGuide += `2. **Estrategia recomendada:** ${categoryAdvice}\n\n`;
+  let fallbackGuide = `Guía rápida para "${trophyName}":\n\n`;
+  fallbackGuide += `1. Objetivo oficial: ${trophyDetail || "Ver descripción en la tarjeta."}\n`;
+  fallbackGuide += `2. Estrategia recomendada: ${categoryAdvice}\n\n`;
   
   if (videoDesc) {
     const cleanDesc = videoDesc
@@ -104,7 +105,7 @@ Instrucciones:
       .trim();
     
     if (cleanDesc.length > 50) {
-      fallbackGuide += `💡 **Detalles del tutorial:** ${cleanDesc.slice(0, 260)}...\n`;
+      fallbackGuide += `💡 Detalles del tutorial: ${cleanDesc.slice(0, 260)}...\n`;
     }
   }
 
@@ -209,13 +210,10 @@ Lista de trofeos pendientes actuales:
 ${listText}
 
 Instrucciones:
-1. Agrupa y estructura los trofeos pendientes en un plan de 3 o 4 pasos ordenados cronológica y lógicamente. Por ejemplo:
-   - Paso 1: Trofeos de Historia / Campaña (los obligatorios).
-   - Paso 2: Trofeos de Combate, Habilidad o Acumulativos.
-   - Paso 3: Coleccionables y Exploración.
-   - Paso 4: Limpieza final.
-2. Para cada paso, proporciona un título atractivo (ej: "Paso 1: Completar la campaña principal"), una breve descripción táctica de lo que se debe hacer y una lista corta de los trofeos pendientes que se consiguen en ese paso.
-3. Formatea la respuesta en un formato JSON estructurado para que el frontend pueda renderizarlo elegantemente. El JSON debe tener exactamente este formato:
+1. Agrupa y estructura los trofeos pendientes en un plan de 2 a 4 pasos ordenados de forma cronológica y lógica.
+2. IMPORTANTE: Solo debes crear fases para las cuales existan trofeos pendientes reales en la lista provista. Por ejemplo, si no hay trofeos con etiqueta "(story)" o de historia en la lista, NO debes crear una "Fase 1: Historia / Campaña". Comienza directamente con los trofeos que sí quedan (ej: Combate, Coleccionables o Limpieza). Cada fase debe tener al menos un trofeo asignado de la lista provista.
+3. Para cada paso, proporciona un título atractivo (ej. "Fase 1: Retos de Combate y Habilidades"), una breve descripción táctica de lo que se debe hacer y la lista de nombres de trofeos que pertenecen a ese paso.
+4. Formatea la respuesta en un formato JSON estructurado para que el frontend pueda renderizarlo elegantemente. El JSON debe tener exactamente este formato:
 {
   "steps": [
     {

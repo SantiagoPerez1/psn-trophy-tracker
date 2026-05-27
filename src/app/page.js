@@ -888,7 +888,7 @@ export default function Home() {
                                             📝 Guía Rápida {guideSource === "gemini-ai" ? "🤖 (IA Gemini)" : "📖"}
                                           </h5>
                                           <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
-                                            {trophyGuide}
+                                            {trophyGuide.replace(/\*\*/g, "")}
                                           </p>
                                         </div>
                                       )}

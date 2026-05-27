@@ -401,7 +401,7 @@ export function classifyTrophy(name, detail) {
   }
 
   // 2. Historia / Campaña
-  if (
+  const hasStoryKeyword = (
     detailLower.includes("chapter") || detailLower.includes("complete the story") || detailLower.includes("mision") ||
     detailLower.includes("historia") || detailLower.includes("capitulo") || detailLower.includes("campaña") ||
     detailLower.includes("prologo") || detailLower.includes("secuencia") || detailLower.includes("epilogo") ||
@@ -409,7 +409,21 @@ export function classifyTrophy(name, detail) {
     detailLower.includes("mission") || detailLower.includes("defeat the final") || detailLower.includes("derrota al jefe final") ||
     nameLower.includes("capítulo") || nameLower.includes("chapter") || nameLower.includes("prologue") ||
     nameLower.includes("epilogue")
-  ) {
+  );
+
+  const isOptionalOrSecondary = (
+    detailLower.includes("secundaria") || detailLower.includes("secundarias") ||
+    detailLower.includes("desaparecida") || detailLower.includes("desaparecidas") ||
+    detailLower.includes("opcional") || detailLower.includes("opcionales") ||
+    detailLower.includes("cooperativa") || detailLower.includes("cooperativas") ||
+    detailLower.includes("side") || detailLower.includes("lost") ||
+    nameLower.includes("secundaria") || nameLower.includes("secundarias") ||
+    nameLower.includes("desaparecida") || nameLower.includes("desaparecidas") ||
+    nameLower.includes("opcional") || nameLower.includes("opcionales") ||
+    nameLower.includes("side") || nameLower.includes("lost")
+  );
+
+  if (hasStoryKeyword && !isOptionalOrSecondary) {
     return "story";
   }
 

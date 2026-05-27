@@ -269,10 +269,10 @@ export default function Home() {
     setShowRoadmapModal(true);
 
     try {
-      // Mandamos solo los trofeos pendientes según el filtro de Juego Base
-      const pending = onlyBaseGame
-        ? trophies.filter(t => t.trophyGroupId === "default" || !t.trophyGroupId)
-        : trophies;
+      // Para el Platino SIEMPRE se consideran únicamente los trofeos del Juego Base (grupo "default" o sin grupo)
+      const pending = trophies.filter(
+        t => t.trophyGroupId === "default" || !t.trophyGroupId
+      );
 
       const res = await fetch("/api/roadmap", {
         method: "POST",

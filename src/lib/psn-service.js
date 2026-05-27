@@ -199,18 +199,27 @@ export async function getGamesForUser(psnId) {
     // Obtener el perfil detallado del usuario (avatar, PS Plus, etc.)
     let userProfile = {
       onlineId: psnId,
-      avatarUrl: null,
+      avatarUrl: matchedUser?.socialMetadata?.avatarUrl || searchResults[0]?.socialMetadata?.avatarUrl || null,
       isPlus: false
     };
 
     try {
       const profileResponse = await getProfileFromAccountId(auth, accountId);
       if (profileResponse) {
-        const avatarObj = profileResponse.avatarUrls?.find(
-          a => a.size === "xl" || a.size === "l"
-        ) || profileResponse.avatarUrls?.[0];
-        userProfile.avatarUrl = avatarObj?.avatarUrl || null;
-        userProfile.isPlus = profileResponse.isPlus || profileResponse.plus || false;
+        // En basicProfile de Sony, el avatar se devuelve en 'avatarUrl' o 'avatarUrls'
+        if (profileResponse.avatarUrl) {
+          userProfile.avatarUrl = profileResponse.avatarUrl;
+        } else if (profileResponse.avatarUrls) {
+          const avatarObj = profileResponse.avatarUrls.find(
+            a => a.size === "xl" || a.size === "l"
+          ) || profileResponse.avatarUrls[0];
+          userProfile.avatarUrl = avatarObj?.avatarUrl || userProfile.avatarUrl;
+        }
+        
+        // PlayStation Plus de forma estricta (1 o true)
+        userProfile.isPlus = profileResponse.plus === 1 || 
+                             profileResponse.plus === true || 
+                             profileResponse.isPlus === true;
       }
     } catch (profileErr) {
       console.warn(`No se pudo obtener el perfil detallado del usuario de PSN:`, profileErr);
@@ -570,8 +579,8 @@ export async function getPlayedGamesForUser(psnId) {
     // Mapear la respuesta para el frontend
     const playedGames = (playedGamesResponse.titles || []).map(game => ({
       titleName: game.name || game.titleName,
-      conceptIconUrl: game.image?.url || game.conceptIconUrl,
-      platform: game.platform,
+      conceptIconUrl: game.imageUrl || game.image?.url || game.conceptIconUrl || null,
+      platform: game.platform || (game.category && (game.category.includes("ps5") ? "PS5" : "PS4")) || game.category || "PS4",
       playDuration: game.playDuration, // ej: "PT124H"
       playCount: game.playCount,
       lastPlayedDateTime: game.lastPlayedDateTime

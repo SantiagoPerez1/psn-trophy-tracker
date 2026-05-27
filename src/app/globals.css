@@ -1159,5 +1159,758 @@ html, body {
   z-index: 5;
 }
 
+/* ==========================================================================
+   CARACTERÍSTICAS PREMIUM ADICIONALES (HITOS, IA, COMPANION, FILTROS)
+   ========================================================================== */
+
+/* 1. Hitos y Estadísticas del Cazador */
+.hunter-stats-section {
+  margin-bottom: 2rem;
+}
+
+.hunter-profile-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.hunter-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hunter-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ps-blue), #8a2be2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 0 10px rgba(0, 114, 206, 0.4);
+}
+
+.hunter-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hunter-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hunter-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(0, 114, 206, 0.2);
+  border: 1px solid rgba(0, 114, 206, 0.4);
+  color: #60a5fa;
+  padding: 0.1rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.hunter-level-badge .star-icon {
+  color: #f59e0b;
+}
+
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .milestones-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.milestone-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.milestone-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.milestone-icon {
+  font-size: 1.3rem;
+}
+
+.milestone-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.milestone-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hunter-trophies-breakdown {
+  display: flex;
+  gap: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  justify-content: flex-start;
+}
+
+.breakdown-item {
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* 2. Doble Rareza de Trofeos */
+.trophy-rarity-row {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.4rem 0 0.6rem 0;
+  font-size: 0.7rem;
+}
+
+.rarity-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.rarity-item.official {
+  color: var(--text-secondary);
+}
+
+.rarity-item.community {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.15);
+  background: rgba(56, 189, 248, 0.02);
+}
+
+/* 3. Tags de Categoría de Actividad */
+.trophy-activity-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  height: fit-content;
+}
+
+.trophy-activity-tag.story {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.trophy-activity-tag.collectible {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.trophy-activity-tag.combat {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.trophy-activity-tag.progression {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.trophy-activity-tag.online {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.trophy-activity-tag.other {
+  background: rgba(107, 114, 128, 0.08);
+  border: 1px solid rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+}
+
+/* 4. Barra de Filtros por Actividad */
+.activity-filters-bar {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  scrollbar-width: none;
+}
+
+.activity-filters-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.activity-filter-btn {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.activity-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.activity-filter-btn.active {
+  background: rgba(0, 114, 206, 0.12);
+  border-color: var(--ps-blue);
+  color: #60a5fa;
+}
+
+/* 5. Pestañas y Chat del Asistente de IA */
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  gap: 0.25rem;
+}
+
+.panel-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 0.6rem 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.panel-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.panel-tab-btn.active {
+  color: #60a5fa;
+  border-bottom-color: var(--ps-blue);
+}
+
+.assistant-chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 440px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chat-messages-container {
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  scrollbar-width: thin;
+}
+
+.chat-message {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 85%;
+}
+
+.chat-message.assistant {
+  align-self: flex-start;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}
+
+.chat-message.user .message-avatar {
+  background: rgba(0, 114, 206, 0.15);
+  border-color: rgba(0, 114, 206, 0.3);
+}
+
+.message-bubble {
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.chat-message.assistant .message-bubble {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-top-left-radius: 2px;
+}
+
+.chat-message.user .message-bubble {
+  background: var(--ps-blue);
+  color: white;
+  border-top-right-radius: 2px;
+}
+
+.chat-typing-loader {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 12px;
+}
+
+.chat-typing-loader span {
+  width: 5px;
+  height: 5px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.chat-typing-loader span:nth-child(1) { animation-delay: -0.32s; }
+.chat-typing-loader span:nth-child(2) { animation-delay: -0.16s; }
+
+.chat-quick-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-color);
+}
+
+.quick-question-btn {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-question-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.chat-input-form {
+  display: flex;
+  padding: 0.6rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-darker);
+  gap: 0.4rem;
+}
+
+.chat-input {
+  flex-grow: 1;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  color: white;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: var(--ps-blue);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.chat-send-btn {
+  background: var(--ps-blue);
+  color: white;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: #0084f0;
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.5;
+}
+
+/* 6. Barra de Acciones del Juego */
+.game-actions-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.action-btn.companion-toggle-btn.active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.action-btn.roadmap-btn {
+  background: rgba(138, 43, 226, 0.08);
+  border-color: rgba(138, 43, 226, 0.25);
+  color: #c084fc;
+}
+
+.action-btn.roadmap-btn:hover {
+  background: rgba(138, 43, 226, 0.15);
+  border-color: rgba(138, 43, 226, 0.4);
+}
+
+/* 7. Modal de la Ruta al Platino (Roadmap) */
+.roadmap-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(4, 4, 10, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.roadmap-modal-content {
+  width: 90%;
+  max-width: 650px;
+  max-height: 80vh;
+  background: #0d0f22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.roadmap-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.roadmap-modal-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: white;
+}
+
+.close-modal-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.close-modal-btn:hover {
+  color: white;
+}
+
+.roadmap-modal-body {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  flex-grow: 1;
+}
+
+.roadmap-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.timeline-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 15px;
+  bottom: 6px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.timeline-step {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+}
+
+.step-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-dark);
+  border: 2px solid var(--ps-blue);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(0, 114, 206, 0.25);
+  z-index: 2;
+}
+
+.step-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+}
+
+.step-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+}
+
+.step-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.step-trophies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.step-trophies-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.step-trophy-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.step-trophy-tag {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.roadmap-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-btn-secondary {
+  background: var(--ps-blue);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.close-btn-secondary:hover {
+  background: #0084f0;
+}
+
+/* 8. Modo Companion App */
+.companion-mode-active {
+  max-width: 100% !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.companion-mode-active .game-card.expanded {
+  border-radius: 0 !important;
+  border: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #04040a !important;
+  box-shadow: none !important;
+}
+
+.companion-mode-active .expanded-body {
+  flex-grow: 1 !important;
+  overflow: hidden !important;
+  height: calc(100vh - 120px) !important;
+  padding: 0 1rem 1rem 1rem !important;
+}
+
+.companion-mode-active .expanded-trophies-list {
+  max-height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.companion-mode-active .trophies-scroll-container {
+  flex-grow: 1 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+}
+
+.companion-mode-active .expanded-video-panel {
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.companion-mode-active .panel-tab-content {
+  flex-grow: 1 !important;
+  overflow: hidden !important;
+}
+
+.companion-mode-active .assistant-chat-panel {
+  height: 100% !important;
+}
+
+.companion-mode-active .video-card {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.companion-mode-active .video-container {
+  flex-grow: 1 !important;
+  margin: 0 !important;
+  min-height: 250px !important;
+}
+
+.companion-mode-active .video-container iframe {
+  height: 100% !important;
+}
+
+
 
 

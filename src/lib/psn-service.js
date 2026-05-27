@@ -236,7 +236,12 @@ export async function getGamesForUser(psnId) {
 export async function getPendingTrophiesForGame(psnId, npCommunicationId, platform) {
   if (!process.env.PSN_NPSSO) {
     console.log(`[Modo Simulación] Devolviendo trofeos mock para: ${npCommunicationId}`);
-    return MOCK_TROPHIES[npCommunicationId] || [];
+    const mockList = MOCK_TROPHIES[npCommunicationId] || [];
+    return mockList.map(t => ({
+      ...t,
+      activityType: classifyTrophy(t.trophyName, t.trophyDetail),
+      trophyEarnedRate: t.trophyEarnedRate !== undefined ? t.trophyEarnedRate : (t.trophyType === "gold" ? 2.5 : t.trophyType === "silver" ? 8.4 : 24.5)
+    }));
   }
 
   try {
@@ -331,7 +336,9 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
         trophyGroupId: t.trophyGroupId, // ID del grupo (para distinguir juego base "default" de expansiones/DLCs)
         trophyGroupName: groupNameMap.get(t.trophyGroupId) || (t.trophyGroupId === "default" ? "Juego Base" : `DLC - Expansión ${t.trophyGroupId}`), // Nombre descriptivo del DLC o Juego Base
         earned: false,
-        progress: progressMap.get(t.trophyId) || null // Añadir los datos de progreso real (si existen)
+        progress: progressMap.get(t.trophyId) || null, // Añadir los datos de progreso real (si existen)
+        activityType: classifyTrophy(t.trophyName, t.trophyDetail),
+        trophyEarnedRate: t.trophyEarnedRate !== undefined ? parseFloat(t.trophyEarnedRate) : null
       }));
 
     return pendingTrophies;
@@ -354,3 +361,81 @@ export async function getPendingTrophiesForGame(psnId, npCommunicationId, platfo
     throw new Error(errorMessage);
   }
 }
+
+/**
+ * Clasifica semánticamente un trofeo según su nombre y descripción
+ */
+export function classifyTrophy(name, detail) {
+  const nameLower = (name || "").toLowerCase();
+  const detailLower = (detail || "").toLowerCase();
+
+  // 1. Online / Multijugador
+  if (
+    detailLower.includes("online") || detailLower.includes("co-op") || detailLower.includes("cooperativo") ||
+    detailLower.includes("multiplayer") || detailLower.includes("multijugador") || detailLower.includes("amigo") ||
+    detailLower.includes("friend") || detailLower.includes("match") || detailLower.includes("partida") ||
+    detailLower.includes("squad") || detailLower.includes("equipo") || nameLower.includes("online") ||
+    nameLower.includes("co-op") || nameLower.includes("cooperativo") || nameLower.includes("multiplayer")
+  ) {
+    return "online";
+  }
+
+  // 2. Historia / Campaña
+  if (
+    detailLower.includes("chapter") || detailLower.includes("complete the story") || detailLower.includes("mision") ||
+    detailLower.includes("historia") || detailLower.includes("capitulo") || detailLower.includes("campaña") ||
+    detailLower.includes("prologo") || detailLower.includes("secuencia") || detailLower.includes("epilogo") ||
+    detailLower.includes("story") || detailLower.includes("epilogue") || detailLower.includes("prologue") ||
+    detailLower.includes("mission") || detailLower.includes("defeat the final") || detailLower.includes("derrota al jefe final") ||
+    nameLower.includes("capítulo") || nameLower.includes("chapter") || nameLower.includes("prologue") ||
+    nameLower.includes("epilogue")
+  ) {
+    return "story";
+  }
+
+  // 3. Coleccionables
+  if (
+    detailLower.includes("collect") || detailLower.includes("find") || detailLower.includes("gather") ||
+    detailLower.includes("relic") || detailLower.includes("reliquia") || detailLower.includes("coleccionable") ||
+    detailLower.includes("caja") || detailLower.includes("lockbox") || detailLower.includes("grabacion") ||
+    detailLower.includes("audio") || detailLower.includes("mapa") || detailLower.includes("cofre") ||
+    detailLower.includes("chest") || detailLower.includes("journal") || detailLower.includes("diario") ||
+    detailLower.includes("treasure") || detailLower.includes("tesoro") || detailLower.includes("intel") ||
+    detailLower.includes("document") || detailLower.includes("documento") || nameLower.includes("collect") ||
+    nameLower.includes("colección") || nameLower.includes("reliquia") || nameLower.includes("treasure")
+  ) {
+    return "collectible";
+  }
+
+  // 4. Combate / Jefes
+  if (
+    detailLower.includes("defeat") || detailLower.includes("kill") || detailLower.includes("derrota") ||
+    detailLower.includes("vence") || detailLower.includes("boss") || detailLower.includes("jefe") ||
+    detailLower.includes("slay") || detailLower.includes("weapon") || detailLower.includes("combate") ||
+    detailLower.includes("sigilo") || detailLower.includes("stealth") || detailLower.includes("headshot") ||
+    detailLower.includes("combat") || detailLower.includes("melee") || detailLower.includes("shoot") ||
+    detailLower.includes("dispara") || detailLower.includes("eliminar") || detailLower.includes("elimina") ||
+    detailLower.includes("enemy") || detailLower.includes("enemigo") || detailLower.includes("counter") ||
+    detailLower.includes("contraataque") || nameLower.includes("defeat") || nameLower.includes("derrota") ||
+    nameLower.includes("kill") || nameLower.includes("jefe") || nameLower.includes("boss")
+  ) {
+    return "combat";
+  }
+
+  // 5. Progreso / Nivel
+  if (
+    detailLower.includes("reach level") || detailLower.includes("nivel") || detailLower.includes("upgrade") ||
+    detailLower.includes("mejora") || detailLower.includes("max") || detailLower.includes("equip") ||
+    detailLower.includes("habilidad") || detailLower.includes("skill") || detailLower.includes("point") ||
+    detailLower.includes("puntos") || detailLower.includes("xp") || detailLower.includes("experience") ||
+    detailLower.includes("experiencia") || detailLower.includes("comprar") || detailLower.includes("buy") ||
+    detailLower.includes("purchase") || detailLower.includes("desbloquear") || detailLower.includes("unlock") ||
+    nameLower.includes("level") || nameLower.includes("nivel") || nameLower.includes("upgrade") ||
+    nameLower.includes("mejora")
+  ) {
+    return "progression";
+  }
+
+  return "other";
+}
+

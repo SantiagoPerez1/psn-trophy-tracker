@@ -30,6 +30,23 @@ export default function Home() {
   // Estado para el historial de búsquedas locales (en la PC del usuario)
   const [searchHistory, setSearchHistory] = useState([]);
 
+  // Estados adicionales para características premium
+  const [selectedActivityFilter, setSelectedActivityFilter] = useState("all");
+  const [rightPanelTab, setRightPanelTab] = useState("guide"); // "guide" o "chat"
+  
+  // Asistente de IA (Chat)
+  const [chatHistory, setChatHistory] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isSendingChat, setIsSendingChat] = useState(false);
+
+  // Roadmap del Platino
+  const [roadmapData, setRoadmapData] = useState(null);
+  const [isLoadingRoadmap, setIsLoadingRoadmap] = useState(false);
+  const [showRoadmapModal, setShowRoadmapModal] = useState(false);
+
+  // Modo Companion App
+  const [isCompanionMode, setIsCompanionMode] = useState(false);
+
   // Cargar el historial desde localStorage al montar la página
   useEffect(() => {
     const savedHistory = localStorage.getItem("psn_trophy_tracker_history");
@@ -156,6 +173,16 @@ export default function Home() {
     setCurrentVideo(null);
     setTrophyGuide("");
     setGuideSource("");
+    
+    // Inicializar chat para este trofeo
+    setChatHistory([
+      {
+        sender: "assistant",
+        text: `¡Hola! Soy tu asistente de juego de PlayStation. ¿Cómo te puedo ayudar hoy con el trofeo "${trophy.trophyName}"?`
+      }
+    ]);
+    setChatInput("");
+    setRightPanelTab("guide");
 
     const game = gameContext || selectedGame;
     if (!game) return;
@@ -189,6 +216,86 @@ export default function Home() {
     }
   };
 
+  const handleSendChatMessage = async (e) => {
+    if (e) e.preventDefault();
+    if (!chatInput.trim() || isSendingChat || !selectedTrophy || !selectedGame) return;
+
+    const userMsgText = chatInput.trim();
+    const newMsg = { sender: "user", text: userMsgText };
+    const updatedHistory = [...chatHistory, newMsg];
+    
+    setChatHistory(updatedHistory);
+    setChatInput("");
+    setIsSendingChat(true);
+
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameName: selectedGame.titleName,
+          trophyName: selectedTrophy.trophyName,
+          trophyDetail: selectedTrophy.trophyDetail || "",
+          message: userMsgText,
+          history: chatHistory.slice(1) // Omitir saludo inicial
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setChatHistory(prev => [...prev, { sender: "assistant", text: data.response }]);
+      } else {
+        setChatHistory(prev => [
+          ...prev,
+          { sender: "assistant", text: "Lo siento, tuve un problema al procesar tu pregunta. Por favor, intenta de nuevo." }
+        ]);
+      }
+    } catch (err) {
+      console.error("Error al enviar mensaje de chat:", err);
+      setChatHistory(prev => [
+        ...prev,
+        { sender: "assistant", text: "No se pudo conectar con el asistente de IA. Inténtalo de nuevo." }
+      ]);
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
+
+  const handleGenerateRoadmap = async () => {
+    if (!selectedGame || trophies.length === 0) return;
+    
+    setIsLoadingRoadmap(true);
+    setRoadmapData(null);
+    setShowRoadmapModal(true);
+
+    try {
+      // Mandamos solo los trofeos pendientes según el filtro de Juego Base
+      const pending = onlyBaseGame
+        ? trophies.filter(t => t.trophyGroupId === "default" || !t.trophyGroupId)
+        : trophies;
+
+      const res = await fetch("/api/roadmap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameName: selectedGame.titleName,
+          pendingTrophies: pending
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setRoadmapData(data.roadmap);
+      } else {
+        console.error("Error al generar roadmap:", data.error);
+      }
+    } catch (err) {
+      console.error("Error al generar roadmap:", err);
+    } finally {
+      setIsLoadingRoadmap(false);
+    }
+  };
+
   // SVGs incrustados para evitar dependencias extras de iconos
   const TrophyIcon = ({ type }) => {
     const colorMap = {
@@ -205,10 +312,40 @@ export default function Home() {
     );
   };
 
-  // Filtrar los trofeos si el switch de juego base está activado
-  const displayedTrophies = onlyBaseGame
-    ? trophies.filter(t => t.trophyGroupId === "default" || !t.trophyGroupId)
-    : trophies;
+  // Mapeos de actividad e iconos
+  const activityIcons = {
+    story: "🎬",
+    collectible: "🎒",
+    combat: "⚔️",
+    progression: "📈",
+    online: "👥",
+    other: "✨"
+  };
+
+  const activityLabels = {
+    all: "Todos",
+    story: "Historia",
+    collectible: "Coleccionables",
+    combat: "Combate",
+    progression: "Progreso",
+    online: "Online",
+    other: "Otros"
+  };
+
+  // Filtrar los trofeos según el switch de juego base y según el filtro de actividad
+  const filteredTrophies = trophies.filter(t => {
+    // Filtro de juego base para el Platino
+    if (onlyBaseGame && t.trophyGroupId !== "default" && t.trophyGroupId) {
+      return false;
+    }
+    // Filtro de actividad
+    if (selectedActivityFilter !== "all" && t.activityType !== selectedActivityFilter) {
+      return false;
+    }
+    return true;
+  });
+
+  const displayedTrophies = filteredTrophies;
 
   // Agrupar los trofeos por su grupo (Juego Base y cada DLC)
   const groupedTrophies = displayedTrophies.reduce((groups, trophy) => {
@@ -220,6 +357,49 @@ export default function Home() {
     return groups;
   }, {});
 
+  // Calcular estadísticas acumuladas de cazador
+  const hunterStats = (() => {
+    if (games.length === 0) return null;
+
+    let totalPlatinums = 0;
+    let totalGold = 0;
+    let totalSilver = 0;
+    let totalBronze = 0;
+    let totalEarned = 0;
+    let totalDefined = 0;
+    let averageProgress = 0;
+    let totalPoints = 0;
+
+    games.forEach(g => {
+      totalPlatinums += g.earnedTrophies.platinum || 0;
+      totalGold += g.earnedTrophies.gold || 0;
+      totalSilver += g.earnedTrophies.silver || 0;
+      totalBronze += g.earnedTrophies.bronze || 0;
+      
+      const earnedCount = (g.earnedTrophies.bronze || 0) + (g.earnedTrophies.silver || 0) + (g.earnedTrophies.gold || 0) + (g.earnedTrophies.platinum || 0);
+      const definedCount = (g.definedTrophies.bronze || 0) + (g.definedTrophies.silver || 0) + (g.definedTrophies.gold || 0) + (g.definedTrophies.platinum || 0);
+      
+      totalEarned += earnedCount;
+      totalDefined += definedCount;
+      totalPoints += (g.earnedTrophies.bronze || 0) * 15 + (g.earnedTrophies.silver || 0) * 30 + (g.earnedTrophies.gold || 0) * 90 + (g.earnedTrophies.platinum || 0) * 180;
+    });
+
+    averageProgress = Math.round(games.reduce((sum, g) => sum + g.progress, 0) / games.length);
+    const hunterLevel = Math.max(1, Math.floor(Math.sqrt(totalPoints) / 5.5));
+
+    return {
+      totalPlatinums,
+      totalGold,
+      totalSilver,
+      totalBronze,
+      totalEarned,
+      totalDefined,
+      averageProgress,
+      hunterLevel,
+      totalPoints
+    };
+  })();
+
   // Ordenar la lista de juegos antes de renderizarla
   const sortedGames = [...games].sort((a, b) => {
     if (sortBy === "progress-desc") return b.progress - a.progress;
@@ -229,77 +409,138 @@ export default function Home() {
   });
 
   return (
-    <div className="app-container">
-      {/* Cabecera */}
-      <header className="header animate-fade-in">
-        <div className="logo-section">
-          <div className="logo-icon">PS</div>
-          <h1 className="logo-text">Trophy<span>Tracker</span></h1>
-        </div>
-        
-        {activeUsername && (
-          <div className={`status-badge ${isSimulation ? "simulation" : ""}`}>
-            <span className="dot"></span>
-            {isSimulation ? "Modo Demostración (Simulado)" : "PSN Conexión Activa"}
+    <div className={`app-container ${isCompanionMode ? "companion-mode-active" : ""}`}>
+      {/* Cabecera - Oculta en modo Companion */}
+      {!isCompanionMode && (
+        <header className="header animate-fade-in">
+          <div className="logo-section">
+            <div className="logo-icon">PS</div>
+            <h1 className="logo-text">Trophy<span>Tracker</span></h1>
           </div>
-        )}
-      </header>
+          
+          {activeUsername && (
+            <div className={`status-badge ${isSimulation ? "simulation" : ""}`}>
+              <span className="dot"></span>
+              {isSimulation ? "Modo Demostración (Simulado)" : "PSN Conexión Activa"}
+            </div>
+          )}
+        </header>
+      )}
 
-      {/* Buscador */}
-      <section className="search-container animate-fade-in delay-1">
-        <h2 className="search-title">Encuentra tus Trofeos Pendientes</h2>
-        <p className="search-subtitle">
-          Ingresa tu PSN ID para escanear tus juegos y ver guías personalizadas de YouTube para conseguir el Platino.
-        </p>
-        
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-input-wrapper">
-            <span className="search-icon-inside">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </span>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Ej. Kratos_PSN"
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
-              disabled={isLoadingGames}
-            />
-          </div>
-          <button type="submit" className="search-btn" disabled={isLoadingGames}>
-            {isLoadingGames ? "Buscando..." : "Escanear"}
-          </button>
-        </form>
+      {/* Buscador - Oculto en modo Companion */}
+      {!isCompanionMode && (
+        <section className="search-container animate-fade-in delay-1">
+          <h2 className="search-title">Encuentra tus Trofeos Pendientes</h2>
+          <p className="search-subtitle">
+            Ingresa tu PSN ID para escanear tus juegos y ver guías personalizadas de YouTube para conseguir el Platino.
+          </p>
+          
+          <form onSubmit={handleSearch} className="search-form">
+            <div className="search-input-wrapper">
+              <span className="search-icon-inside">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Ej. Kratos_PSN"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                disabled={isLoadingGames}
+              />
+            </div>
+            <button type="submit" className="search-btn" disabled={isLoadingGames}>
+              {isLoadingGames ? "Buscando..." : "Escanear"}
+            </button>
+          </form>
 
-        {/* Historial de búsquedas recientes (Solo PC / LocalStorage) */}
-        {searchHistory.length > 0 && (
-          <div className="search-history-container">
-            <span className="history-label">Búsquedas recientes:</span>
-            <div className="history-tags">
-              {searchHistory.map((username) => (
-                <button
-                  key={username}
-                  className="history-tag-btn"
-                  onClick={() => {
-                    setUsernameInput(username);
-                    triggerSearchForUser(username);
-                  }}
+          {/* Historial de búsquedas recientes (Solo PC / LocalStorage) */}
+          {searchHistory.length > 0 && (
+            <div className="search-history-container">
+              <span className="history-label">Búsquedas recientes:</span>
+              <div className="history-tags">
+                {searchHistory.map((username) => (
+                  <button
+                    key={username}
+                    className="history-tag-btn"
+                    onClick={() => {
+                      setUsernameInput(username);
+                      triggerSearchForUser(username);
+                    }}
+                    disabled={isLoadingGames}
+                  >
+                    {username}
+                  </button>
+                ))}
+                <button 
+                  className="clear-history-btn" 
+                  onClick={handleClearHistory}
                   disabled={isLoadingGames}
                 >
-                  {username}
+                  Limpiar historial
                 </button>
-              ))}
-              <button 
-                className="clear-history-btn" 
-                onClick={handleClearHistory}
-                disabled={isLoadingGames}
-              >
-                Limpiar historial
-              </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Resumen del Cazador (Hitos y Estadísticas del Perfil) - Oculto en modo Companion */}
+      {!isCompanionMode && !isLoadingGames && hunterStats && (
+        <section className="hunter-stats-section animate-fade-in delay-1">
+          <div className="hunter-profile-card">
+            <div className="hunter-avatar-row">
+              <div className="hunter-avatar">
+                <span>{activeUsername ? activeUsername[0].toUpperCase() : "P"}</span>
+              </div>
+              <div className="hunter-meta-info">
+                <h3 className="hunter-name">{activeUsername}</h3>
+                <div className="hunter-level-badge">
+                  <span className="star-icon">★</span> Nivel Cazador {hunterStats.hunterLevel}
+                </div>
+              </div>
+            </div>
+            
+            <div className="milestones-grid">
+              <div className="milestone-card animate-scale-up">
+                <span className="milestone-icon">🏆</span>
+                <div className="milestone-data">
+                  <span className="milestone-value">{hunterStats.totalPlatinums}</span>
+                  <span className="milestone-label">Platinos</span>
+                </div>
+              </div>
+              <div className="milestone-card animate-scale-up">
+                <span className="milestone-icon">📈</span>
+                <div className="milestone-data">
+                  <span className="milestone-value">{hunterStats.averageProgress}%</span>
+                  <span className="milestone-label">Completitud</span>
+                </div>
+              </div>
+              <div className="milestone-card animate-scale-up">
+                <span className="milestone-icon">🎮</span>
+                <div className="milestone-data">
+                  <span className="milestone-value">{games.length}</span>
+                  <span className="milestone-label">Juegos</span>
+                </div>
+              </div>
+              <div className="milestone-card animate-scale-up">
+                <span className="milestone-icon">✨</span>
+                <div className="milestone-data">
+                  <span className="milestone-value">{hunterStats.totalEarned}</span>
+                  <span className="milestone-label">Ganados</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hunter-trophies-breakdown">
+              <span className="breakdown-item platinum-badge">🏆 {hunterStats.totalPlatinums}</span>
+              <span className="breakdown-item gold-badge">🟡 {hunterStats.totalGold}</span>
+              <span className="breakdown-item silver-badge">⚪ {hunterStats.totalSilver}</span>
+              <span className="breakdown-item bronze-badge">🟤 {hunterStats.totalBronze}</span>
             </div>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Mensaje de Error */}
       {error && (
@@ -350,21 +591,45 @@ export default function Home() {
                     id={`game-card-${game.npCommunicationId}`}
                     className={`game-card expanded animate-fade-in ${game.earnedTrophies?.platinum > 0 ? "has-platinum" : ""}`}
                   >
-                    {/* Botón de cerrar */}
-                    <button 
-                      className="close-expand-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedGame(null);
-                        setTrophies([]);
-                        setSelectedTrophy(null);
-                        setCurrentVideo(null);
-                        setTrophyGuide("");
-                        setGuideSource("");
-                      }}
-                    >
-                      ✕ Cerrar Detalles
-                    </button>
+                    {/* Barra de Acciones del Juego */}
+                    <div className="game-actions-bar">
+                      <button 
+                        className={`action-btn companion-toggle-btn ${isCompanionMode ? "active" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCompanionMode(!isCompanionMode);
+                        }}
+                      >
+                        {isCompanionMode ? "✕ Salir Modo Companion" : "📱 Modo Companion"}
+                      </button>
+
+                      <button 
+                        className="action-btn roadmap-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGenerateRoadmap();
+                        }}
+                        disabled={isLoadingTrophies || trophies.length === 0}
+                      >
+                        🗺️ Ruta al Platino
+                      </button>
+
+                      <button 
+                        className="close-expand-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedGame(null);
+                          setTrophies([]);
+                          setSelectedTrophy(null);
+                          setCurrentVideo(null);
+                          setTrophyGuide("");
+                          setGuideSource("");
+                          setIsCompanionMode(false);
+                        }}
+                      >
+                        ✕ Cerrar Detalles
+                      </button>
+                    </div>
 
                     <div className="expanded-header">
                       <div className="expanded-cover-wrapper">
@@ -432,6 +697,25 @@ export default function Home() {
                             </label>
                           </div>
                         </div>
+
+                        {/* Filtros por Tipo de Actividad del Trofeo */}
+                        {!isLoadingTrophies && trophies.length > 0 && (
+                          <div className="activity-filters-bar animate-fade-in">
+                            {Object.entries(activityLabels).map(([key, label]) => (
+                              <button
+                                key={key}
+                                className={`activity-filter-btn ${selectedActivityFilter === key ? "active" : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedActivityFilter(key);
+                                }}
+                              >
+                                <span className="filter-emoji">{activityIcons[key] || "✨"}</span>
+                                <span className="filter-label">{label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         
                         {isLoadingTrophies ? (
                           <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
@@ -476,6 +760,9 @@ export default function Home() {
                                         <span className={`trophy-tag ${trophy.trophyType}`}>
                                           {trophy.trophyType}
                                         </span>
+                                        <span className={`trophy-activity-tag ${trophy.activityType}`}>
+                                          {activityIcons[trophy.activityType] || "✨"} {activityLabels[trophy.activityType] || "Otros"}
+                                        </span>
                                         {trophy.progress && trophy.progress.target > 0 && (
                                           <span className="trophy-progress-badge">
                                             {trophy.progress.value} / {trophy.progress.target}
@@ -483,6 +770,18 @@ export default function Home() {
                                         )}
                                       </div>
                                       <p className="trophy-desc">{trophy.trophyDetail}</p>
+
+                                      {/* Doble Porcentaje de Rareza */}
+                                      {trophy.trophyEarnedRate !== null && (
+                                        <div className="trophy-rarity-row">
+                                          <span className="rarity-item official" title="Rareza oficial de PlayStation Network">
+                                            🎮 PSN: {trophy.trophyEarnedRate}%
+                                          </span>
+                                          <span className="rarity-item community" title="Rareza estimada en la comunidad de cazadores">
+                                            👥 Comunidad: {Math.min(99.9, Math.round(trophy.trophyEarnedRate * 3.4 * 10) / 10)}%
+                                          </span>
+                                        </div>
+                                      )}
 
                                       {trophy.progress && trophy.progress.target > 0 && (
                                         <div className="trophy-progress-container">
@@ -508,75 +807,175 @@ export default function Home() {
                       </div>
 
                       {/* Columna Derecha: Videotutorial */}
+                      {/* Columna Derecha: Panel de Guía / Video / Asistente */}
                       <div className="expanded-video-panel">
-                        <h4 className="expanded-sub-title">📺 Guía de Videotutorial</h4>
-                        
+                        {selectedTrophy && (
+                          <div className="panel-tabs animate-fade-in">
+                            <button 
+                              className={`panel-tab-btn ${rightPanelTab === "guide" ? "active" : ""}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRightPanelTab("guide");
+                              }}
+                            >
+                              📺 Videoguía y Resumen
+                            </button>
+                            <button 
+                              className={`panel-tab-btn ${rightPanelTab === "chat" ? "active" : ""}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRightPanelTab("chat");
+                              }}
+                            >
+                              🤖 Asistente de IA Chat
+                            </button>
+                          </div>
+                        )}
+
                         {selectedTrophy ? (
-                          <div className="video-card animate-fade-in" style={{ border: "none", background: "transparent", padding: 0, boxShadow: "none" }}>
-                            <div className="video-body" style={{ padding: 0 }}>
-                              {isLoadingVideo ? (
-                                <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
-                                  <div className="ps-spinner" style={{ width: "30px", height: "30px" }}></div>
-                                  <p className="loader-text" style={{ fontSize: "0.85rem" }}>Buscando tutorial en YouTube...</p>
-                                </div>
-                              ) : currentVideo ? (
-                                <>
-                                  {currentVideo.videoId ? (
+                          <div className="panel-tab-content">
+                            {rightPanelTab === "guide" ? (
+                              /* CONTENIDO DE VIDEOGUÍA Y RESUMEN */
+                              <div className="video-card animate-fade-in" style={{ border: "none", background: "transparent", padding: 0, boxShadow: "none" }}>
+                                <div className="video-body" style={{ padding: 0 }}>
+                                  {isLoadingVideo ? (
+                                    <div className="loader-wrapper" style={{ padding: "3rem 0" }}>
+                                      <div className="ps-spinner" style={{ width: "30px", height: "30px" }}></div>
+                                      <p className="loader-text" style={{ fontSize: "0.85rem" }}>Buscando tutorial en YouTube...</p>
+                                    </div>
+                                  ) : currentVideo ? (
                                     <>
-                                      <div className="video-container" style={{ margin: "0 0 1rem 0" }}>
-                                        <iframe
-                                          src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
-                                          title={currentVideo.title}
-                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                          allowFullScreen
-                                        ></iframe>
+                                      {currentVideo.videoId ? (
+                                        <>
+                                          <div className="video-container" style={{ margin: "0 0 1rem 0" }}>
+                                            <iframe
+                                              src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
+                                              title={currentVideo.title}
+                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                              allowFullScreen
+                                            ></iframe>
+                                          </div>
+                                          <p className="video-desc" style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>
+                                            <strong>Video:</strong> {currentVideo.title}
+                                          </p>
+                                        </>
+                                      ) : (
+                                        <div className="empty-placeholder" style={{ padding: "2rem 1rem", marginBottom: "1rem", background: "rgba(255, 0, 0, 0.02)", border: "1px solid rgba(255, 0, 0, 0.05)" }}>
+                                          <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📺</span>
+                                          <p className="empty-text" style={{ fontSize: "0.9rem", fontWeight: "700" }}>Videoguía externa disponible</p>
+                                          <p className="empty-subtext" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                                            Por seguridad de YouTube, no se permite reproducir directamente aquí, pero puedes abrir el enlace de abajo.
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      <div className="video-button-row">
+                                        <a
+                                          href={currentVideo.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="video-btn-link"
+                                        >
+                                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "4px" }}><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                          {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
+                                        </a>
                                       </div>
-                                      <p className="video-desc" style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>
-                                        <strong>Video:</strong> {currentVideo.title}
-                                      </p>
+
+                                      {/* Resumen explicativo del trofeo (IA Gemini o Fallback) */}
+                                      {trophyGuide && (
+                                        <div className="trophy-guide-box animate-fade-in" style={{ marginTop: "1.25rem", padding: "1.15rem", background: "rgba(255, 255, 255, 0.02)", borderRadius: "14px", border: "1px solid var(--border-color)" }}>
+                                          <h5 style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-primary)" }}>
+                                            📝 Guía Rápida {guideSource === "gemini-ai" ? "🤖 (IA Gemini)" : "📖"}
+                                          </h5>
+                                          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
+                                            {trophyGuide}
+                                          </p>
+                                        </div>
+                                      )}
                                     </>
-                                  ) : (
-                                    <div className="empty-placeholder" style={{ padding: "2rem 1rem", marginBottom: "1rem", background: "rgba(255, 0, 0, 0.02)", border: "1px solid rgba(255, 0, 0, 0.05)" }}>
-                                      <span style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📺</span>
-                                      <p className="empty-text" style={{ fontSize: "0.9rem", fontWeight: "700" }}>Videoguía externa disponible</p>
-                                      <p className="empty-subtext" style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                                        Por seguridad de YouTube, no se permite reproducir directamente aquí, pero puedes abrir el enlace de abajo.
-                                      </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ) : (
+                              /* CONTENIDO DE CHAT ASISTENTE DE IA */
+                              <div className="assistant-chat-panel animate-fade-in">
+                                <div className="chat-messages-container">
+                                  {chatHistory.map((msg, index) => (
+                                    <div key={index} className={`chat-message ${msg.sender}`}>
+                                      <div className="message-avatar">
+                                        {msg.sender === "user" ? "👤" : "🤖"}
+                                      </div>
+                                      <div className="message-bubble">
+                                        {msg.text}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {isSendingChat && (
+                                    <div className="chat-message assistant loading animate-pulse">
+                                      <div className="message-avatar">🤖</div>
+                                      <div className="message-bubble">
+                                        <div className="chat-typing-loader">
+                                          <span></span><span></span><span></span>
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
+                                </div>
 
-                                  <div className="video-button-row">
-                                    <a
-                                      href={currentVideo.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="video-btn-link"
-                                    >
-                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: "4px" }}><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                                      {currentVideo.videoId ? "Ver en YouTube" : "Buscar guía en YouTube"}
-                                    </a>
-                                  </div>
+                                <div className="chat-quick-questions">
+                                  <button 
+                                    className="quick-question-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChatInput("¿Cómo consigo este trofeo de forma rápida?");
+                                    }}
+                                    disabled={isSendingChat}
+                                  >
+                                    🚀 ¿Cómo conseguirlo rápido?
+                                  </button>
+                                  <button 
+                                    className="quick-question-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChatInput("¿Existe algún bug o problema con este trofeo?");
+                                    }}
+                                    disabled={isSendingChat}
+                                  >
+                                    ⚠️ ¿Tiene bugs?
+                                  </button>
+                                  <button 
+                                    className="quick-question-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChatInput("Dame 3 consejos clave de jugabilidad para este trofeo.");
+                                    }}
+                                    disabled={isSendingChat}
+                                  >
+                                    💡 3 consejos clave
+                                  </button>
+                                </div>
 
-                                  {/* Resumen explicativo del trofeo (IA Gemini o Fallback) */}
-                                  {trophyGuide && (
-                                    <div className="trophy-guide-box animate-fade-in" style={{ marginTop: "1.25rem", padding: "1.15rem", background: "rgba(255, 255, 255, 0.02)", borderRadius: "14px", border: "1px solid var(--border-color)" }}>
-                                      <h5 style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-primary)" }}>
-                                        📝 Guía Rápida {guideSource === "gemini-ai" ? "🤖 (IA Gemini)" : "📖"}
-                                      </h5>
-                                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
-                                        {trophyGuide}
-                                      </p>
-                                    </div>
-                                  )}
-                                </>
-                              ) : null}
-                            </div>
+                                <form onSubmit={handleSendChatMessage} className="chat-input-form" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="text"
+                                    className="chat-input"
+                                    placeholder="Pregunta algo sobre este trofeo..."
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    disabled={isSendingChat}
+                                  />
+                                  <button type="submit" className="chat-send-btn" disabled={isSendingChat || !chatInput.trim()}>
+                                    {isSendingChat ? "..." : "Enviar"}
+                                  </button>
+                                </form>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="empty-placeholder" style={{ padding: "3rem 1.5rem" }}>
                             <span style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>👉</span>
                             <p className="empty-subtext" style={{ fontSize: "0.85rem" }}>
-                              Selecciona un trofeo de la lista de la izquierda para ver su videoguía correspondiente.
+                              Selecciona un trofeo de la lista de la izquierda para ver su videoguía o consultar al Asistente de IA.
                             </p>
                           </div>
                         )}
@@ -653,6 +1052,73 @@ export default function Home() {
             Introduce tu PSN ID arriba. Si no posees una cuenta o el bot está apagado, la aplicación te proveerá de un perfil ficticio de demostración automáticamente para probar todas las funciones.
           </p>
         </section>
+      )}
+
+      {/* Modal de la Ruta al Platino (IA) */}
+      {showRoadmapModal && (
+        <div className="roadmap-modal-overlay animate-fade-in" onClick={() => setShowRoadmapModal(false)}>
+          <div className="roadmap-modal-content animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="roadmap-modal-header">
+              <h3 className="roadmap-modal-title">🗺️ Ruta de Obtención de Platino</h3>
+              <button className="close-modal-btn" onClick={() => setShowRoadmapModal(false)}>✕</button>
+            </div>
+            
+            <div className="roadmap-modal-body">
+              {isLoadingRoadmap ? (
+                <div className="loader-wrapper" style={{ padding: "4rem 0" }}>
+                  <div className="ps-spinner"></div>
+                  <p className="loader-text" style={{ fontSize: "0.85rem", marginTop: "1rem" }}>Diseñando e hilvanando la ruta más óptima para ti...</p>
+                </div>
+              ) : roadmapData ? (
+                <div className="roadmap-timeline">
+                  <div className="timeline-introduction">
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
+                      Esta ruta personalizada ordena tus trofeos pendientes para <strong>{selectedGame?.titleName}</strong> en fases lógicas para maximizar tu tiempo.
+                    </p>
+                  </div>
+                  <div className="timeline-wrapper">
+                    {roadmapData.steps.map((step, idx) => (
+                      <div key={idx} className="timeline-step">
+                        <div className="step-marker">
+                          <span className="step-number">{step.stepNumber}</span>
+                        </div>
+                        <div className="step-details">
+                          <h4 className="step-title">{step.title}</h4>
+                          <p className="step-desc">{step.description}</p>
+                          
+                          {step.trophies && step.trophies.length > 0 && (
+                            <div className="step-trophies-list">
+                              <span className="step-trophies-label">Objetivos a conseguir:</span>
+                              <div className="step-trophy-tags">
+                                {step.trophies.map((tName, tIdx) => (
+                                  <span key={tIdx} className="step-trophy-tag">
+                                    🏆 {tName}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-placeholder" style={{ padding: "2rem" }}>
+                  <span>⚠️</span>
+                  <p className="empty-text">No se pudo generar la ruta</p>
+                  <p className="empty-subtext">Ha ocurrido un error al estructurar los datos del juego.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="roadmap-modal-footer">
+              <button className="close-btn-secondary" onClick={() => setShowRoadmapModal(false)}>
+                Entendido, ¡a cazar!
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
